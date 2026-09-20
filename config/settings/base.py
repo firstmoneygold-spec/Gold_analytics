@@ -125,8 +125,27 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
+# Security & Allowed Hosts
+ALLOWED_HOSTS = [
+    '*',
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '.onrender.com',
+    '.railway.app',
+    '.koyeb.app',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://*.railway.app',
+    'https://*.koyeb.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',

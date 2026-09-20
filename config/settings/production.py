@@ -13,8 +13,10 @@ DEBUG = env.bool('DEBUG', default=False)
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[
+    '*',
     'localhost',
     '127.0.0.1',
+    '0.0.0.0',
     '.onrender.com',
     '.railway.app',
     '.koyeb.app',
