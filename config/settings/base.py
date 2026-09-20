@@ -127,16 +127,16 @@ REST_FRAMEWORK = {
 
 # Security & Allowed Hosts
 ALLOWED_HOSTS = [
-    '*',
+    'gold-analytics-dkkl.onrender.com',
+    '.onrender.com',
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    '.onrender.com',
-    '.railway.app',
-    '.koyeb.app',
+    '*',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://gold-analytics-dkkl.onrender.com',
     'https://*.onrender.com',
     'https://*.railway.app',
     'https://*.koyeb.app',
