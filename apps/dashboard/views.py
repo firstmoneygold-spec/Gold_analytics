@@ -12,9 +12,24 @@ def home_view(request):
     - Renders high-converting SaaS Landing page for unauthenticated visitors.
     - Renders full AI Trading Terminal & TradingView Analytics Dashboard for logged-in users.
     """
+    # Query all active assets and categorize (with auto-migration on fresh cloud dyno)
+    try:
+        all_assets = Asset.objects.filter(is_active=True)
+        if not all_assets.exists():
+            seed_default_assets()
+            all_assets = Asset.objects.filter(is_active=True)
+    except Exception:
+        from django.core.management import call_command
+        call_command('migrate', interactive=False)
+        seed_default_assets()
+        all_assets = Asset.objects.filter(is_active=True)
+
     if not request.user.is_authenticated:
-        featured_assets = Asset.objects.filter(is_featured=True, is_active=True)[:8]
-        accuracy_audits = AccuracyAudit.objects.all().order_by('-directional_win_rate')[:4]
+        featured_assets = all_assets.filter(is_featured=True)[:8]
+        try:
+            accuracy_audits = AccuracyAudit.objects.all().order_by('-directional_win_rate')[:4]
+        except Exception:
+            accuracy_audits = []
         return render(request, 'dashboard/landing.html', {
             'featured_assets': featured_assets,
             'accuracy_audits': accuracy_audits,
@@ -22,12 +37,6 @@ def home_view(request):
 
     # User is Authenticated — Render Trading Dashboard
     user = request.user
-    
-    # Query all active assets and categorize
-    all_assets = Asset.objects.filter(is_active=True)
-    if not all_assets.exists():
-        seed_default_assets()
-        all_assets = Asset.objects.filter(is_active=True)
 
     # Categories
     gold_and_metals = all_assets.filter(asset_type=Asset.AssetType.COMMODITY)
