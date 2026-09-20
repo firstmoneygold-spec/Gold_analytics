@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application"
+    startCommand: "python manage.py migrate --no-input && python manage.py shell -c 'from apps.market_data.services.seeder import seed_default_assets; seed_default_assets()' && gunicorn config.wsgi:application"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production

@@ -1,1 +1,1 @@
-web: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+web: python manage.py migrate --no-input && python manage.py shell -c "from apps.market_data.services.seeder import seed_default_assets; seed_default_assets()" && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
