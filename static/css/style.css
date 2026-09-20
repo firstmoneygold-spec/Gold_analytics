@@ -1,0 +1,308 @@
+/* ==============================================================================
+   TrendMaster AI — Obsidian & Gold Modern SaaS Design System
+   ============================================================================== */
+
+:root {
+  --bg-dark: #090c10;
+  --bg-card: #131722;
+  --bg-card-hover: #1e222d;
+  --bg-input: #1b202e;
+  --border-color: #2a2e39;
+  --border-gold: #f59e0b;
+  
+  --gold-primary: #f59e0b;
+  --gold-glow: rgba(245, 158, 11, 0.18);
+  --gold-hover: #d97706;
+
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dark: #6b7280;
+
+  --bullish-green: #10b981;
+  --bullish-glow: rgba(16, 185, 129, 0.2);
+  --bearish-red: #ef4444;
+  --bearish-glow: rgba(239, 68, 68, 0.2);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 15px var(--gold-glow);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography & Links */
+a {
+  color: var(--gold-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+a:hover {
+  color: var(--gold-hover);
+  text-decoration: underline;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+  text-decoration: none;
+}
+.gold-icon {
+  color: var(--gold-primary);
+  font-size: 1.6rem;
+}
+.gold-text {
+  color: var(--gold-primary);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.nav-link {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+.nav-link:hover, .nav-link.active {
+  color: var(--text-main);
+  background: var(--bg-input);
+  text-decoration: none;
+}
+
+/* Market Switcher Pill */
+.market-switcher {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  padding: 0.25rem 0.35rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+}
+.market-pill {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 16px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+.market-pill.active {
+  background: var(--gold-primary);
+  color: #000;
+}
+
+/* Main Container */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  flex: 1;
+}
+
+/* Auth Cards */
+.auth-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-card);
+}
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.auth-header h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+.auth-header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.form-input, .form-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-input:focus, .form-select:focus {
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 0 2px var(--gold-glow);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn-gold {
+  background: var(--gold-primary);
+  color: #000;
+}
+.btn-gold:hover {
+  background: var(--gold-hover);
+  box-shadow: var(--shadow-glow);
+  text-decoration: none;
+}
+.btn-outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+}
+.btn-outline:hover {
+  background: var(--bg-input);
+  border-color: var(--text-muted);
+  text-decoration: none;
+}
+.btn-block {
+  width: 100%;
+}
+
+/* Flash Messages */
+.alert-messages {
+  margin-bottom: 1.5rem;
+}
+.alert {
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.alert-success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--bullish-green);
+  color: #34d399;
+}
+.alert-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--bearish-red);
+  color: #f87171;
+}
+.alert-info {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--gold-primary);
+  color: #fbbf24;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+.badge-free {
+  background: #374151;
+  color: #d1d5db;
+}
+.badge-pro {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+.badge-enterprise {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+}
+
+/* Profile / Dashboard Grid */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+}
+.card-header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}

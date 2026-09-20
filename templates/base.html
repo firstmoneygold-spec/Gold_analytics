@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TrendMaster AI — Gold & Stock Prediction SaaS{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{% url 'dashboard:home' %}" class="brand-logo">
+            <span class="gold-icon">⚡</span>
+            <span>Trend<span class="gold-text">Master</span> AI</span>
+        </a>
+
+        {% if user.is_authenticated %}
+        <!-- Market Preference Toggle (AJAX) -->
+        <div class="market-switcher" id="market-switcher-container">
+            <button class="market-pill {% if user.preferred_market == 'INDIA' %}active{% endif %}" onclick="switchMarket('INDIA')">
+                🇮🇳 India (MCX/NSE)
+            </button>
+            <button class="market-pill {% if user.preferred_market == 'USA' %}active{% endif %}" onclick="switchMarket('USA')">
+                🇺🇸 USA (COMEX/NYSE)
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="nav-links">
+            <a href="{% url 'dashboard:home' %}" class="nav-link">Analytics</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'users:profile' %}" class="nav-link">
+                    {% if user.is_pro_or_higher %}
+                        <span class="badge badge-pro">PRO</span>
+                    {% else %}
+                        <span class="badge badge-free">FREE</span>
+                    {% endif %}
+                    {{ user.email|truncatechars:18 }}
+                </a>
+                <a href="{% url 'users:logout' %}" class="btn btn-outline" style="padding: 0.35rem 0.8rem; font-size: 0.85rem;">Sign Out</a>
+            {% else %}
+                <a href="{% url 'users:login' %}" class="nav-link">Sign In</a>
+                <a href="{% url 'users:register' %}" class="btn btn-gold" style="padding: 0.45rem 1rem;">Get Started Free</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% if messages %}
+        <div class="alert-messages">
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function switchMarket(market) {
+            fetch("{% url 'users:switch_market' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": getCookie("csrftoken")
+                },
+                body: "market=" + market
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.reload();
+                }
+            })
+            .catch(err => console.error("Error switching market preference:", err));
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

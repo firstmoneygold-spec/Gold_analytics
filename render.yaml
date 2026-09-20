@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: gold-analytics-ai
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gold-analytics-db
+          property: connectionString
+
+databases:
+  - name: gold-analytics-db
+    plan: free

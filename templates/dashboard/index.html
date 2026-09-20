@@ -1,0 +1,1579 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ selected_asset.symbol }} — AI Forecast & Terminal | TrendMaster AI{% endblock %}
+
+{% block extra_head %}
+<!-- TradingView Lightweight Charts Library -->
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  .terminal-grid {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 1024px) {
+    .terminal-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ticker-bar {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .ticker-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: all 0.2s ease;
+  }
+  .ticker-pill:hover, .ticker-pill.active {
+    border-color: var(--gold-primary);
+    background: var(--bg-card-hover);
+    text-decoration: none;
+  }
+  .timeframe-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .timeframe-btn:hover, .timeframe-btn.active {
+    background: var(--gold-primary);
+    color: #000;
+    font-weight: 700;
+    border-color: var(--gold-primary);
+  }
+  .signal-box {
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    margin-bottom: 1rem;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: 0.5px;
+  }
+  .signal-strong-buy, .signal-buy {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid var(--bullish-green);
+    color: #34d399;
+  }
+  .signal-strong-sell, .signal-sell {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid var(--bearish-red);
+    color: #f87171;
+  }
+  .signal-neutral {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid var(--gold-primary);
+    color: #fbbf24;
+  }
+  .factor-bar-bg {
+    background: var(--bg-input);
+    border-radius: 6px;
+    height: 8px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .factor-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s ease;
+  }
+  .category-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .category-tab:hover, .category-tab.active {
+    background: var(--gold-primary);
+    color: #000;
+    border-color: var(--gold-primary);
+  }
+  .asset-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    text-decoration: none;
+    color: var(--text-main);
+    transition: background 0.2s ease;
+    border-radius: 4px;
+  }
+  .asset-item:hover {
+    background: var(--bg-card-hover);
+    text-decoration: none;
+  }
+  .asset-item.active {
+    background: var(--bg-input);
+    border-left: 3px solid var(--gold-primary);
+  }
+  .tp-target-box {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid var(--bullish-green);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .purity-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Action Bar & Live Ticker Bar -->
+
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; background: var(--bg-card); padding: 0.75rem 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <span class="badge badge-pro" style="background: rgba(245, 158, 11, 0.15); color: var(--gold-primary); border: 1px solid var(--gold-primary); font-weight: 700;">
+            ⚡ LIVE MARKET ENGINE
+        </span>
+        <span id="sync-timestamp-badge" style="font-size: 0.85rem; color: var(--text-muted);">
+            Last Synced: <strong id="last-sync-time" style="color: var(--text-main);">Today, Live Stream Active</strong>
+        </span>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button class="btn btn-gold" id="btn-full-refresh-top" onclick="triggerFullDataRefresh()" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; padding: 0.55rem 1.25rem; box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);">
+            <span id="refresh-icon-top">🔄</span> Full Refresh Latest Data
+        </button>
+    </div>
+</div>
+
+<!-- Top Ticker Bar -->
+<div class="ticker-bar">
+    {% for asset in ticker_assets %}
+    <a href="?symbol={{ asset.symbol }}" class="ticker-pill {% if asset.symbol == selected_asset.symbol %}active{% endif %}">
+        <span style="font-weight: 700; color: var(--gold-primary);">{{ asset.symbol }}</span>
+        <span style="font-size: 0.9rem;">{{ asset.currency }} {{ asset.last_price|default:"--" }}</span>
+        <span style="font-size: 0.8rem; font-weight: 600; color: {% if asset.price_change_pct_24h >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %};">
+            {% if asset.price_change_pct_24h >= 0 %}▲ +{% else %}▼ {% endif %}{{ asset.price_change_pct_24h|default:"0.0" }}%
+        </span>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- =========================================================================
+     🪙 PHYSICAL RETAIL GOLD PRICE & 22K (1 GRAM) BUY/SELL PREDICTOR
+     ========================================================================= -->
+<div class="card" style="margin-bottom: 1.5rem; border: 1px solid var(--border-gold); background: linear-gradient(180deg, #161b26, #12151e);">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <h2 style="font-size: 1.35rem; color: var(--gold-primary); margin: 0;">🪙 Physical Gold Price & 22K Buy / Sell Forecast (Per 1 Gram)</h2>
+                <span class="badge badge-pro">Benchmark: 1g Unit</span>
+            </div>
+            <small style="color: var(--text-muted);">
+                Rates in <strong>{{ physical_gold.currency_symbol }} per 1 Gram</strong> with retail jewelry 3% GST, scrap selling spreads, and AI target dates.
+            </small>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-gold" onclick="setChartMode('physical', true)" style="padding: 0.4rem 0.85rem; font-size: 0.825rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+                📊 View 1g Price Graph
+            </button>
+            <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid var(--gold-primary); padding: 0.4rem 0.85rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: var(--gold-primary);" id="physical-ai-strategy-badge">
+                ⚡ AI Strategy: {{ physical_gold.action_recommendation }}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 1 Gram Purity Rates Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+        <!-- 24K Pure Bullion per 1g -->
+        <div class="purity-card" style="border-top: 3px solid var(--gold-primary);">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">24K Pure Gold (999 Purity)</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">TODAY'S 1G RATE:</div>
+            <div style="font-size: 1.6rem; font-weight: 800; margin: 0.2rem 0; color: var(--gold-primary);" id="rate-24k-1g-today">
+                {{ physical_gold.currency_symbol }} {{ physical_gold.current_24k_1g }} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g</small>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="rate-24k-10g-today">
+                10g: {{ physical_gold.currency_symbol }} {{ physical_gold.current_24k_10g }}
+            </div>
+            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.75rem; color: var(--bullish-green); font-weight: 600;">
+                Target Price: <strong style="color: var(--bullish-green); font-size: 0.9rem;" id="pred-24k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_24k_1g }} / 1g</strong>
+                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 0.15rem;">Target Date: <span class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y"|default:"30 Days" }}</span></div>
+            </div>
+        </div>
+
+        <!-- 22K Hallmark Jewelry per 1g (Primary Focus) -->
+        <div class="purity-card" style="border-top: 3px solid var(--bullish-green); background: rgba(16, 185, 129, 0.05);">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 0.35rem;">
+                <span style="font-size: 0.8rem; color: var(--bullish-green); font-weight: 800; text-transform: uppercase;">22K Jewelry (916 Hallmark)</span>
+                <span class="badge badge-pro" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">PRIMARY</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">TODAY'S 1G RATE:</div>
+            <div style="font-size: 1.8rem; font-weight: 800; margin: 0.2rem 0; color: var(--text-main);" id="rate-22k-1g-today">
+                {{ physical_gold.currency_symbol }} {{ physical_gold.current_22k_1g }} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g</small>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="rate-22k-ref-today">
+                8g (1 Pavan): {{ physical_gold.currency_symbol }} {{ physical_gold.current_22k_8g }} • 10g: {{ physical_gold.currency_symbol }} {{ physical_gold.current_22k_10g }}
+            </div>
+            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--bullish-green); font-weight: 700;">
+                Target Price: <strong style="color: var(--gold-primary); font-size: 1rem;" id="pred-22k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_22k_1g }} / 1g</strong>
+                <div style="color: var(--gold-primary); font-size: 0.75rem; margin-top: 0.15rem;">Expected Target Date: <strong class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y"|default:"30 Days" }}</strong></div>
+            </div>
+        </div>
+
+        <!-- 18K Studded Gold per 1g -->
+        <div class="purity-card" style="border-top: 3px solid #60a5fa;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">18K Studded Gold (750 Purity)</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">TODAY'S 1G RATE:</div>
+            <div style="font-size: 1.6rem; font-weight: 800; margin: 0.2rem 0; color: #93c5fd;" id="rate-18k-1g-today">
+                {{ physical_gold.currency_symbol }} {{ physical_gold.current_18k_1g }} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g</small>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="rate-18k-10g-today">
+                10g: {{ physical_gold.currency_symbol }} {{ physical_gold.current_18k_10g }}
+            </div>
+            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.75rem; color: var(--bullish-green); font-weight: 600;">
+                Target Price: <strong style="color: #93c5fd; font-size: 0.9rem;" id="pred-18k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_18k_1g }} / 1g</strong>
+                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 0.15rem;">Target Date: <span class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y"|default:"30 Days" }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 22K Actionable 1g Buy vs Sell Spreads -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; background: var(--bg-card); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+        <!-- Recommended 1g Buying Price Box -->
+        <div style="border-left: 3px solid var(--bullish-green); padding-left: 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--bullish-green); margin-bottom: 0.25rem;">
+                🟢 22K Today's BUY Price (Per 1g with 3% GST)
+            </div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);" id="rate-buy-22k-1g">
+                {{ physical_gold.currency_symbol }} {{ physical_gold.rec_buy_price_22k_1g }} <small style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">/ 1g</small>
+            </div>
+            <small style="color: var(--text-muted); display: block; margin-top: 0.35rem; font-size: 0.8rem;">
+                Predicted Target Buy Rate: <strong style="color: var(--bullish-green);" id="pred-buy-22k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.target_buy_predicted_22k_1g }} / 1g</strong>
+            </small>
+        </div>
+
+        <!-- Recommended 1g Selling / Old Gold Box -->
+        <div style="border-left: 3px solid var(--gold-primary); padding-left: 1rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--gold-primary); margin-bottom: 0.25rem;">
+                🟡 22K Today's SELL / Old Gold Cash Price (Per 1g)
+            </div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);" id="rate-sell-22k-1g">
+                {{ physical_gold.currency_symbol }} {{ physical_gold.rec_sell_price_22k_1g }} <small style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">/ 1g</small>
+            </div>
+            <small style="color: var(--text-muted); display: block; margin-top: 0.35rem; font-size: 0.8rem;">
+                Predicted Liquidation Target: <strong style="color: var(--gold-primary);" id="pred-sell-22k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.target_sell_predicted_22k_1g }} / 1g</strong>
+            </small>
+        </div>
+
+        <!-- Quick 1g Unit Calculator -->
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <label style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem; font-weight: 600;">🧮 22K Weight Calculator (Grams):</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="number" id="calc-grams" value="1" min="0.1" max="1000" step="0.5" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.9rem; width: 85px;" oninput="calculateJewelryPrice()">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Grams =</span>
+                <strong style="color: var(--gold-primary); font-size: 1.05rem;" id="calc-total-result">
+                    {{ physical_gold.currency_symbol }} {{ physical_gold.current_22k_1g }}
+                </strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         🎯 30-DAY PREDICTED HIGH & LOW CORRIDOR (10-Year Data + Live News Analysis)
+         ========================================================================= -->
+    <div style="margin-top: 1.25rem; background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.95)); border: 1px solid var(--border-gold); border-radius: var(--radius-sm); padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <span style="font-size: 1.15rem; font-weight: 800; color: var(--gold-primary);">🎯 Next 30-Day Predicted High & Low Corridor</span>
+                    <span class="badge badge-pro" style="font-size: 0.7rem;">10Y Data + Live News AI</span>
+                </div>
+                <small style="color: var(--text-muted); font-size: 0.8rem;">
+                    AI synthesis of past 10-year rolling volatility, ATR bands, real-time FinBERT news sentiment & festive demand cycles.
+                </small>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Expected 30D Trading Spread: <strong style="color: var(--gold-primary);" id="corridor-spread-pct">± {{ physical_gold.corridor_30d.total_spread_range_pct|default:"6.5" }}%</strong>
+            </div>
+        </div>
+
+        <!-- 30-Day High vs Low Metric Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <!-- 30-Day Predicted HIGH (Peak Target) -->
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.8rem; font-weight: 800; color: #f87171; text-transform: uppercase;">🚀 30-Day Predicted HIGH (Peak)</span>
+                    <span style="font-size: 0.75rem; color: var(--bullish-green); font-weight: 700;" id="corridor-high-pct">+{{ physical_gold.corridor_30d.high_surge_pct|default:"5.8" }}% Surge</span>
+                </div>
+                <div style="font-size: 1.65rem; font-weight: 800; color: #fca5a5; margin: 0.35rem 0;" id="corridor-high-22k">
+                    {{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_high_22k_1g }} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g (22K)</small>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;" id="corridor-high-24k">
+                    24K Pure High: <strong style="color: var(--gold-primary);">{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_high_24k_1g }} / 1g</strong> • 8g (1 Pavan): {{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_high_22k_8g }}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 0.4rem;">
+                    📅 Projected Peak Window: <strong style="color: #f87171;" id="corridor-high-date">{{ physical_gold.corridor_30d.high_eta_date|date:"M d, Y" }}</strong>
+                </div>
+            </div>
+
+            <!-- 30-Day Predicted LOW (Optimal Buying Dip Support) -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.8rem; font-weight: 800; color: var(--bullish-green); text-transform: uppercase;">🛡️ 30-Day Predicted LOW (Support Dip)</span>
+                    <span style="font-size: 0.75rem; color: #f87171; font-weight: 700;" id="corridor-low-pct">{{ physical_gold.corridor_30d.low_dip_pct|default:"-2.8" }}% Dip</span>
+                </div>
+                <div style="font-size: 1.65rem; font-weight: 800; color: #6ee7b7; margin: 0.35rem 0;" id="corridor-low-22k">
+                    {{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_22k_1g }} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g (22K)</small>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;" id="corridor-low-24k">
+                    24K Support Low: <strong style="color: var(--gold-primary);">{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong> • 8g (1 Pavan): {{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_22k_8g }}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed var(--border-color); padding-top: 0.4rem;">
+                    📅 Best Buying Dip Window: <strong style="color: var(--bullish-green);" id="corridor-low-date">{{ physical_gold.corridor_30d.low_eta_date|date:"M d, Y" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Factor Driver Breakdown Bar -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; background: var(--bg-card); padding: 0.85rem; border-radius: 4px; font-size: 0.78rem;">
+            <div>
+                <span style="color: var(--text-muted); display: block;">📊 10-Year Quant Volatility:</span>
+                <strong style="color: var(--text-main);" id="corridor-vol-val">{{ physical_gold.corridor_30d.vol_10y_30d_pct|default:"4.80" }}% (30D Sigma)</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block;">📰 FinBERT News Sentiment:</span>
+                <strong style="color: var(--bullish-green);" id="corridor-news-val">{{ physical_gold.corridor_30d.news_impact_pct|default:"+1.65" }}% Momentum</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block;">🌐 Macroeconomic Tailwinds:</span>
+                <strong style="color: var(--gold-primary);" id="corridor-macro-val">{{ physical_gold.corridor_30d.macro_impact_pct|default:"+1.20" }}% Support</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block;">🪔 Festive Seasonality (Diwali/Wedding):</span>
+                <strong style="color: #60a5fa;" id="corridor-season-val">+{{ physical_gold.corridor_30d.seasonality_bias_pct|default:"1.85" }}% Demand Surge</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Main Terminal Grid -->
+<div class="terminal-grid">
+    <!-- Left Column: Chart & Macro Simulator -->
+    <div>
+        <!-- Chart Header & Quick Selector -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <h1 style="font-size: 1.75rem; font-weight: 800; margin: 0;">{{ selected_asset.name }}</h1>
+                        <span class="badge {% if selected_asset.market == 'INDIA' %}badge-free{% else %}badge-pro{% endif %}">
+                            {% if selected_asset.market == 'INDIA' %}🇮🇳 INDIA{% elif selected_asset.market == 'USA' %}🇺🇸 USA{% else %}GLOBAL{% endif %}
+                        </span>
+                        <span class="badge badge-pro" style="background: var(--bg-input); color: var(--gold-primary); border: 1px solid var(--gold-primary);">
+                            {{ selected_asset.asset_type }}
+                        </span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+                        Ticker: <strong style="color: var(--gold-primary);">{{ selected_asset.symbol }}</strong> • Unit: {{ selected_asset.display_unit }} • Currency: {{ selected_asset.currency }}
+                    </div>
+                </div>
+
+                <!-- Price Display & Quick Selector Dropdown -->
+                <div style="text-align: right; display: flex; align-items: center; gap: 1.5rem;">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 800;">
+                            {{ selected_asset.currency }} {{ selected_asset.last_price|default:"--" }}
+                        </div>
+                        <div style="font-weight: 600; color: {% if selected_asset.price_change_pct_24h >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %}; font-size: 0.95rem;">
+                            {% if selected_asset.price_change_pct_24h >= 0 %}▲ +{% else %}▼ {% endif %}{{ selected_asset.price_change_24h|default:"0.0" }} ({{ selected_asset.price_change_pct_24h|default:"0.0" }}%)
+                        </div>
+                    </div>
+
+                    <!-- Quick Dropdown Switcher -->
+                    <select class="form-select" style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onchange="if(this.value) window.location.href='?symbol=' + this.value">
+                        <option value="">⚡ Switch Asset...</option>
+                        <optgroup label="🪙 Precious Metals (Gold & Silver)">
+                            {% for a in gold_and_metals %}
+                            <option value="{{ a.symbol }}" {% if a.symbol == selected_asset.symbol %}selected{% endif %}>{{ a.symbol }} — {{ a.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="🇺🇸 US Mega-Cap Stocks">
+                            {% for a in us_stocks %}
+                            <option value="{{ a.symbol }}" {% if a.symbol == selected_asset.symbol %}selected{% endif %}>{{ a.symbol }} — {{ a.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="🇮🇳 Indian Bluechip Stocks">
+                            {% for a in india_stocks %}
+                            <option value="{{ a.symbol }}" {% if a.symbol == selected_asset.symbol %}selected{% endif %}>{{ a.symbol }} — {{ a.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        <optgroup label="📈 Market Indices">
+                            {% for a in market_indices %}
+                            <option value="{{ a.symbol }}" {% if a.symbol == selected_asset.symbol %}selected{% endif %}>{{ a.symbol }} — {{ a.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Chart Mode Switcher (Asset OHLCV vs Physical Gold 1g Graph) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="category-tab active" id="tab-chart-ohlcv" onclick="setChartMode('ohlcv')">
+                        📈 Candlestick Chart ({{ selected_asset.symbol }})
+                    </button>
+                    <button class="category-tab" id="tab-chart-physical" onclick="setChartMode('physical')" style="border-color: var(--gold-primary); color: var(--gold-primary);">
+                        🪙 Physical Gold (₹ / 1g) Multi-Purity & Forecast Graph
+                    </button>
+                </div>
+
+                <!-- Timeframe Controls for Candlestick Mode -->
+                <div style="display: flex; gap: 0.4rem;" id="timeframe-controls">
+                    <button class="timeframe-btn" onclick="changeTimeframe('15m')">15M</button>
+                    <button class="timeframe-btn" onclick="changeTimeframe('1h')">1H</button>
+                    <button class="timeframe-btn" onclick="changeTimeframe('4h')">4H</button>
+                    <button class="timeframe-btn active" onclick="changeTimeframe('1d')">1D (Daily)</button>
+                    <button class="timeframe-btn" onclick="changeTimeframe('1w')">1W (Weekly)</button>
+                    <button class="timeframe-btn" onclick="changeTimeframe('1M')">1M (Monthly)</button>
+                </div>
+            </div>
+
+            <!-- Physical Gold Graph Legend & Interactive Series Filter Toggles -->
+            <div id="physical-gold-legend-bar" style="display: none; background: var(--bg-input); padding: 0.6rem 1rem; border-radius: var(--radius-sm); margin-top: 0.75rem; border: 1px solid var(--border-color); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; font-size: 0.8rem;">
+                    <span style="font-weight: 700; color: var(--gold-primary); margin-right: 0.25rem;">1g Series:</span>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #f59e0b; font-weight: 600;">
+                        <input type="checkbox" id="chk-24k" checked onchange="toggleGoldSeries('24k')"> 🌟 24K Pure
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #10b981; font-weight: 700;">
+                        <input type="checkbox" id="chk-22k" checked onchange="toggleGoldSeries('22k')"> 🟢 22K 916
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #60a5fa; font-weight: 600;">
+                        <input type="checkbox" id="chk-18k" checked onchange="toggleGoldSeries('18k')"> 🔵 18K
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #ec4899; font-weight: 600;">
+                        <input type="checkbox" id="chk-buy-22k" checked onchange="toggleGoldSeries('buy22k')"> 🟣 22K Buy (GST)
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #fb923c; font-weight: 600;">
+                        <input type="checkbox" id="chk-sell-22k" checked onchange="toggleGoldSeries('sell22k')"> 🟡 22K Sell
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #facc15; font-weight: 700;">
+                        <input type="checkbox" id="chk-forecast" checked onchange="toggleGoldSeries('forecast')"> 🔮 AI Target
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #f87171; font-weight: 700;">
+                        <input type="checkbox" id="chk-corridor-high" checked onchange="toggleGoldSeries('corridorHigh')"> 🔴 30D High Peak
+                    </label>
+                    <label style="display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; color: #34d399; font-weight: 700;">
+                        <input type="checkbox" id="chk-corridor-low" checked onchange="toggleGoldSeries('corridorLow')"> 🟢 30D Low Support
+                    </label>
+                </div>
+                <div id="gold-hover-readout" style="font-size: 0.85rem; font-weight: 700; color: var(--gold-primary);">
+                    Hover over graph for daily rates
+                </div>
+            </div>
+
+
+            <!-- Standard OHLCV Legend Bar -->
+            <div id="ohlcv-legend-bar" style="font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                <span><span style="color: var(--bullish-green);">■</span> Take-Profit / Target</span>
+                <span><span style="color: var(--bearish-red);">■</span> Stop-Loss Buffer</span>
+                <span><span style="color: var(--gold-primary);">■</span> AI Corridor</span>
+            </div>
+
+            <!-- TradingView Lightweight Chart Container -->
+            <div id="tv-chart-container" style="height: 480px; width: 100%; margin-top: 1rem; position: relative; background: #131722; border-radius: 6px; overflow: hidden;">
+                <div id="chart-loading" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(19, 23, 34, 0.95); z-index: 10; font-weight: 600;">
+                    <span style="color: var(--gold-primary);" id="chart-loading-msg">⚡ Syncing High-Precision OHLCV Feed for {{ selected_asset.symbol }}...</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Macro "What-If" Scenario Simulator Widget -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 1.25rem;">⚡ Macro "What-If" Scenario Simulator</h2>
+                <span class="badge badge-pro">Interactive AI Simulation</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+                Simulate how macroeconomic shifts (Fed interest rate cuts, DXY dollar index shifts, USD/INR rate changes) dynamically impact <strong>{{ selected_asset.name }}</strong>.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+                <!-- Fed Rate Cut Slider -->
+                <div>
+                    <label class="form-label" style="display: flex; justify-content: space-between;">
+                        <span>Fed Rate Change (bps):</span>
+                        <strong id="val-fed-rate" style="color: var(--gold-primary);">0 bps</strong>
+                    </label>
+                    <input type="range" min="-100" max="100" step="25" value="0" class="form-input" id="slider-fed-rate" oninput="updateScenario()">
+                </div>
+
+                <!-- DXY Shift Slider -->
+                <div>
+                    <label class="form-label" style="display: flex; justify-content: space-between;">
+                        <span>DXY Dollar Shift (%):</span>
+                        <strong id="val-dxy" style="color: var(--gold-primary);">0.0%</strong>
+                    </label>
+                    <input type="range" min="-5.0" max="5.0" step="0.5" value="0.0" class="form-input" id="slider-dxy" oninput="updateScenario()">
+                </div>
+
+                <!-- USD/INR Depreciation Slider -->
+                <div>
+                    <label class="form-label" style="display: flex; justify-content: space-between;">
+                        <span>USD/INR Shift (%):</span>
+                        <strong id="val-usdinr" style="color: var(--gold-primary);">0.0%</strong>
+                    </label>
+                    <input type="range" min="-5.0" max="5.0" step="0.5" value="0.0" class="form-input" id="slider-usdinr" oninput="updateScenario()">
+                </div>
+            </div>
+
+            <!-- Simulation Result Output Box -->
+            <div id="simulation-output" style="background: var(--bg-input); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Simulated Projected Price:</span>
+                    <strong style="font-size: 1.5rem;" id="sim-price">{{ selected_asset.currency }} {{ selected_asset.last_price|default:"--" }}</strong>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Simulated Net Movement:</span>
+                    <strong style="font-size: 1.25rem; color: var(--text-main);" id="sim-impact">0.00% (Neutral)</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: AI Prediction Card with Expected TP1 Date & Month Horizon -->
+    <div>
+        <!-- AI Prediction Card -->
+        <div class="card" style="margin-bottom: 1.5rem; border: 1px solid var(--border-gold); box-shadow: var(--shadow-glow);" id="ai-prediction-card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <h2 style="font-size: 1.2rem; color: var(--gold-primary); margin: 0;">🤖 AI Forecast & Trade Setup</h2>
+                    <small style="font-size: 0.75rem; color: var(--text-muted);" id="pred-horizon-subtitle">
+                        Horizon: <span id="current-horizon-label">{{ latest_prediction.horizon_label|default:"7-Day Swing" }}</span>
+                    </small>
+                </div>
+                <span class="badge badge-pro" id="current-horizon-badge">{{ latest_prediction.horizon_label|default:"7-Day Swing" }}</span>
+            </div>
+
+            <!-- Prominent Today Price vs Target Price & Date Milestone Box -->
+            <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(16, 185, 129, 0.12)); border: 1px solid var(--border-gold); border-radius: var(--radius-sm); padding: 1.1rem; margin-bottom: 1.25rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.85rem;">
+                    <!-- Today's Live Price -->
+                    <div>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display: block; letter-spacing: 0.5px;">
+                            📍 TODAY'S LIVE PRICE
+                        </span>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin: 0.2rem 0;" id="milestone-today-price">
+                            {{ selected_asset.currency }} {{ latest_prediction.current_price_at_prediction|default:selected_asset.last_price|default:"--" }}
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.72rem; display: block;" id="milestone-today-date">
+                            As of Today (Live Feed)
+                        </small>
+                    </div>
+
+                    <!-- Target Price -->
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.72rem; color: var(--bullish-green); text-transform: uppercase; font-weight: 700; display: block; letter-spacing: 0.5px;">
+                            🎯 PREDICTED TARGET (TP1)
+                        </span>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--bullish-green); margin: 0.2rem 0;" id="milestone-target-price">
+                            {{ selected_asset.currency }} {{ latest_prediction.take_profit_1|default:"--" }}
+                        </div>
+                        <small style="color: var(--bullish-green); font-weight: 700; font-size: 0.75rem;" id="milestone-target-change">
+                            {% if latest_prediction.price_change_pct >= 0 %}▲ +{% else %}▼ {% endif %}{{ latest_prediction.price_change_pct|default:"0.0" }}% Expected
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Target Hit Date Highlight -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+                        📅 Expected Target Date:
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 800; color: var(--gold-primary);" id="milestone-target-date">
+                        {{ latest_prediction.tp1_target_date|date:"M d, Y"|default:"Within Horizon" }}
+                    </div>
+                </div>
+            </div>
+
+            {% if latest_prediction %}
+            <!-- Signal Badge -->
+            <div class="signal-box signal-{{ latest_prediction.signal|lower|cut:'_' }}" id="signal-badge-el">
+                {{ latest_prediction.get_signal_display }}
+            </div>
+
+            <!-- Win Probability Meter -->
+            <div style="background: var(--bg-input); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem;">
+                    <span style="color: var(--text-muted);">Directional Win Probability:</span>
+                    <strong style="color: var(--gold-primary);" id="confidence-score-val">{{ latest_prediction.confidence_score }}%</strong>
+                </div>
+                <div class="factor-bar-bg">
+                    <div class="factor-bar-fill" id="confidence-bar-fill" style="width: {{ latest_prediction.confidence_score }}%; background: linear-gradient(90deg, var(--gold-primary), var(--bullish-green));"></div>
+                </div>
+            </div>
+
+            <!-- Actionable Trade Setup Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+                <div style="background: var(--bg-input); padding: 0.65rem; border-radius: 4px;">
+                    <small style="color: var(--text-muted); display: block;">Suggested Entry</small>
+                    <strong style="color: var(--text-main);" id="val-suggested-entry">{{ selected_asset.currency }} {{ latest_prediction.suggested_entry }}</strong>
+                </div>
+                <div style="background: var(--bg-input); padding: 0.65rem; border-radius: 4px;">
+                    <small style="color: var(--bearish-red); display: block;">Stop-Loss (ATR Buffer)</small>
+                    <strong style="color: var(--bearish-red);" id="val-stop-loss">{{ selected_asset.currency }} {{ latest_prediction.stop_loss }}</strong>
+                </div>
+                <div style="background: var(--bg-input); padding: 0.65rem; border-radius: 4px;">
+                    <small style="color: var(--bullish-green); display: block;">Take-Profit 2 (Extended)</small>
+                    <strong style="color: var(--bullish-green);" id="val-take-profit-2">{{ selected_asset.currency }} {{ latest_prediction.take_profit_2 }}</strong>
+                </div>
+                <div style="background: var(--bg-input); padding: 0.65rem; border-radius: 4px;">
+                    <small style="color: var(--gold-primary); display: block;">Risk / Reward Ratio</small>
+                    <strong style="color: var(--gold-primary);" id="val-risk-reward">1 : {{ latest_prediction.risk_reward_ratio }}</strong>
+                </div>
+            </div>
+
+            <!-- Multi-Factor Contributing Breakdown -->
+            <div style="margin-bottom: 1.25rem;">
+                <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.75rem; display: block; margin-bottom: 0.5rem;">
+                    Multi-Factor AI Decomposition
+                </small>
+                
+                <div style="margin-bottom: 0.4rem; font-size: 0.8rem; display: flex; justify-content: space-between;">
+                    <span>Technicals (EMA/RSI/MACD/ATR):</span>
+                    <strong id="val-technical-score" style="color: {% if latest_prediction.technical_score >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %};">
+                        {{ latest_prediction.technical_score|stringformat:"+0.2f" }}
+                    </strong>
+                </div>
+
+                <div style="margin-bottom: 0.4rem; font-size: 0.8rem; display: flex; justify-content: space-between;">
+                    <span>Macro Drivers (DXY/Yields/USDINR):</span>
+                    <strong id="val-macro-score" style="color: {% if latest_prediction.macro_score >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %};">
+                        {{ latest_prediction.macro_score|stringformat:"+0.2f" }}
+                    </strong>
+                </div>
+
+                <div style="margin-bottom: 0.4rem; font-size: 0.8rem; display: flex; justify-content: space-between;">
+                    <span>FinBERT Real-time News Sentiment:</span>
+                    <strong id="val-sentiment-score" style="color: {% if latest_prediction.sentiment_score >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %};">
+                        {{ latest_prediction.sentiment_score|stringformat:"+0.2f" }}
+                    </strong>
+                </div>
+            </div>
+
+            <!-- AI Summary Text -->
+            <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; background: var(--bg-input); padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;" id="ai-summary-text">
+                {{ latest_prediction.summary_analysis }}
+            </p>
+            {% else %}
+            <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);" id="no-prediction-placeholder">
+                <p style="margin-bottom: 1rem;">No active forecast generated yet for {{ selected_asset.symbol }}.</p>
+            </div>
+            {% endif %}
+
+            <!-- Forecast Horizon Selector (Month, Week, Intraday) -->
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label" style="font-size: 0.8rem; color: var(--text-muted);">Select Forecast Horizon / Period:</label>
+                <select id="forecast-horizon-select" class="form-select" style="padding: 0.5rem; font-size: 0.85rem; font-weight: 600;" onchange="triggerFullDataRefresh()">
+                    <option value="7" selected>📅 7-Day Swing Target (1 Week)</option>
+                    <option value="30">🗓️ 30-Day Monthly Target (1 Month Positional)</option>
+                    <option value="1">⚡ 24-Hour Intraday Target (1 Day)</option>
+                    <option value="90">📊 90-Day Quarterly Target (3 Months)</option>
+                </select>
+            </div>
+
+            <!-- Action Buttons: Full Refresh & Recalculate -->
+            <div style="display: grid; grid-template-columns: 1fr; gap: 0.6rem;">
+                <button class="btn btn-gold btn-block" onclick="triggerFullDataRefresh()" id="btn-full-refresh-card" style="font-weight: 700; padding: 0.75rem; font-size: 0.95rem; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);">
+                    🔄 Full Refresh Data & Recalculate Target
+                </button>
+            </div>
+
+            <small style="display: block; text-align: center; color: var(--text-muted); margin-top: 0.5rem; font-size: 0.75rem;" id="quota-msg-text">
+                {{ quota_msg|default:"Live AI Engine synced with global feeds." }}
+            </small>
+        </div>
+
+
+        <!-- Categorized Asset Switcher & Search Bar -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header" style="margin-bottom: 0.75rem;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Market Asset Directory</h3>
+                
+                <!-- Search Input -->
+                <input type="text" id="asset-search-input" placeholder="🔍 Search Gold, Stocks, Indices (e.g. NVDA, Nifty, BeES)..." class="form-input" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;" oninput="filterAssets()">
+            </div>
+
+            <!-- Category Tabs -->
+            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                <button class="category-tab active" onclick="switchCategory('ALL')">All ({{ all_assets.count }})</button>
+                <button class="category-tab" onclick="switchCategory('COMMODITY')">🪙 Gold/Metals ({{ gold_and_metals.count }})</button>
+                <button class="category-tab" onclick="switchCategory('EQUITY_US')">🇺🇸 US Stocks ({{ us_stocks.count }})</button>
+                <button class="category-tab" onclick="switchCategory('EQUITY_IN')">🇮🇳 India Stocks ({{ india_stocks.count }})</button>
+                <button class="category-tab" onclick="switchCategory('INDEX')">📈 Indices ({{ market_indices.count }})</button>
+            </div>
+
+            <!-- Scrollable Asset List -->
+            <div style="max-height: 280px; overflow-y: auto;" id="asset-list-container">
+                {% for item in all_assets %}
+                <a href="?symbol={{ item.symbol }}" 
+                   class="asset-item {% if item.symbol == selected_asset.symbol %}active{% endif %}"
+                   data-symbol="{{ item.symbol|lower }}"
+                   data-name="{{ item.name|lower }}"
+                   data-type="{{ item.asset_type }}"
+                   data-market="{{ item.market }}">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <strong style="color: var(--gold-primary);">{{ item.symbol }}</strong>
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">{% if item.market == 'INDIA' %}🇮🇳{% elif item.market == 'USA' %}🇺🇸{% endif %}</span>
+                        </div>
+                        <small style="display: block; color: var(--text-muted); font-size: 0.75rem;">{{ item.name|truncatechars:24 }}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.85rem; font-weight: 600;">{{ item.currency }} {{ item.last_price|default:"--" }}</span>
+                        <small style="display: block; font-size: 0.75rem; color: {% if item.price_change_pct_24h >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %};">
+                            {% if item.price_change_pct_24h >= 0 %}+{% endif %}{{ item.price_change_pct_24h|default:"0.0" }}%
+                        </small>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Live News Sentiment Feed -->
+        <div class="card">
+            <div class="card-header">
+                <h3 style="font-size: 1.1rem;">Live News Sentiment</h3>
+            </div>
+            <div style="max-height: 260px; overflow-y: auto;">
+                {% for n in recent_news %}
+                <div style="padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">{{ n.source }}</span>
+                        <span class="badge {% if n.sentiment_label == 'BULLISH' %}badge-pro{% elif n.sentiment_label == 'BEARISH' %}badge-free{% else %}badge-free{% endif %}" style="font-size: 0.65rem;">
+                            {{ n.sentiment_label }} ({{ n.sentiment_score|stringformat:"+0.2f" }})
+                        </span>
+                    </div>
+                    <a href="{{ n.url }}" target="_blank" style="font-size: 0.85rem; color: var(--text-main); line-height: 1.4; display: block;">
+                        {{ n.title }}
+                    </a>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted); font-size: 0.85rem;">No recent news items synced.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Section: Macro Indicators & Accuracy Audit Leaderboard -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+    <!-- Macro Indicators Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="font-size: 1.1rem;">Macroeconomic Drivers (USA & India)</h3>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+            {% for m in latest_macro %}
+            <div style="background: var(--bg-input); padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color);">
+                <small style="color: var(--text-muted); display: block; font-size: 0.75rem;">{{ m.name }}</small>
+                <div style="font-size: 1.1rem; font-weight: 700; margin: 0.2rem 0;">{{ m.value }} {{ m.unit }}</div>
+                <small style="color: {% if m.change_pct >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %}; font-weight: 600;">
+                    {% if m.change_pct >= 0 %}+{% endif %}{{ m.change_pct }}%
+                </small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Accuracy Audit Leaderboard -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="font-size: 1.1rem;">Verified AI Accuracy Audit</h3>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <thead>
+                <tr style="color: var(--text-muted); border-bottom: 1px solid var(--border-color); text-align: left;">
+                    <th style="padding: 0.5rem 0;">Asset</th>
+                    <th>Market</th>
+                    <th>Win Rate</th>
+                    <th>Hits / Total</th>
+                    <th>Avg Return</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for audit in accuracy_audits %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 0.5rem 0; font-weight: 700; color: var(--gold-primary);">{{ audit.asset.symbol }}</td>
+                    <td>{{ audit.asset.market }}</td>
+                    <td><strong style="color: var(--bullish-green);">{{ audit.directional_win_rate }}%</strong></td>
+                    <td style="color: var(--text-muted);">{{ audit.successful_hits }} / {{ audit.total_predictions }}</td>
+                    <td style="color: var(--bullish-green);">+{{ audit.average_return_pct }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const CURRENT_SYMBOL = "{{ selected_asset.symbol }}";
+    let rate22kPerGram = parseFloat("{{ physical_gold.current_22k_1g }}") || 14285.00;
+    const CURRENCY_SYM = "{{ physical_gold.currency_symbol }}";
+
+    let chart, candleSeries, upperBandSeries, lowerBandSeries;
+    let goldSeries24k, goldSeries22k, goldSeries18k, goldSeriesBuy22k, goldSeriesSell22k, goldSeriesForecast, goldSeriesCorridorHigh, goldSeriesCorridorLow;
+    let physicalGoldDataCache = null;
+    let currentChartMode = "ohlcv"; // 'ohlcv' | 'physical'
+    let currentTimeframe = "1d";
+    let activeCategory = "ALL";
+
+    // 22K Jewelry Weight Calculator (Default 1g)
+    function calculateJewelryPrice() {
+        const grams = parseFloat(document.getElementById('calc-grams').value) || 0;
+        const total = grams * rate22kPerGram;
+        document.getElementById('calc-total-result').innerText = `${CURRENCY_SYM} ${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
+
+
+    // Initialize TradingView Lightweight Chart
+    function initChart() {
+        const container = document.getElementById('tv-chart-container');
+        const loadingEl = document.getElementById('chart-loading');
+
+        try {
+            if (typeof LightweightCharts === 'undefined') {
+                console.warn("LightweightCharts not ready, displaying fallback.");
+                loadingEl.style.display = 'none';
+                return;
+            }
+
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth || 700,
+                height: 480,
+                layout: {
+                    background: { color: '#131722' },
+                    textColor: '#9ca3af',
+                },
+                grid: {
+                    vertLines: { color: '#1e222d' },
+                    horzLines: { color: '#1e222d' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: '#2a2e39',
+                },
+                timeScale: {
+                    borderColor: '#2a2e39',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            // 1. Candlestick Series (Asset OHLCV Mode)
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#10b981',
+                downColor: '#ef4444',
+                borderVisible: false,
+                wickUpColor: '#10b981',
+                wickDownColor: '#ef4444',
+            });
+
+            upperBandSeries = chart.addLineSeries({
+                color: 'rgba(245, 158, 11, 0.5)',
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                title: 'AI Upper Band',
+            });
+
+            lowerBandSeries = chart.addLineSeries({
+                color: 'rgba(245, 158, 11, 0.5)',
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                title: 'AI Lower Band',
+            });
+
+            // 2. Physical Gold 1g Multi-Purity Series
+            goldSeries24k = chart.addLineSeries({
+                color: '#f59e0b',
+                lineWidth: 2,
+                title: '24K Pure (₹/1g)',
+                visible: false,
+            });
+
+            goldSeries22k = chart.addLineSeries({
+                color: '#10b981',
+                lineWidth: 3,
+                title: '22K 916 (₹/1g)',
+                visible: false,
+            });
+
+            goldSeries18k = chart.addLineSeries({
+                color: '#60a5fa',
+                lineWidth: 2,
+                title: '18K (₹/1g)',
+                visible: false,
+            });
+
+            goldSeriesBuy22k = chart.addLineSeries({
+                color: '#ec4899',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dotted,
+                title: '22K Buy with 3% GST',
+                visible: false,
+            });
+
+            goldSeriesSell22k = chart.addLineSeries({
+                color: '#fb923c',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dotted,
+                title: '22K Scrap Sell',
+                visible: false,
+            });
+
+            goldSeriesForecast = chart.addLineSeries({
+                color: '#facc15',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                title: '🔮 AI Target Trajectory',
+                visible: false,
+            });
+
+            goldSeriesCorridorHigh = chart.addLineSeries({
+                color: '#f87171',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                title: '🔴 30D High Peak',
+                visible: false,
+            });
+
+            goldSeriesCorridorLow = chart.addLineSeries({
+                color: '#34d399',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                title: '🟢 30D Low Support',
+                visible: false,
+            });
+
+            // Crosshair subscriber for real-time hovered rate readout
+            chart.subscribeCrosshairMove(param => {
+                if (currentChartMode === 'physical' && param.time) {
+                    const timeStr = typeof param.time === 'string' ? param.time : `${param.time.year}-${String(param.time.month).padStart(2,'0')}-${String(param.time.day).padStart(2,'0')}`;
+                    const p22 = param.seriesPrices.get(goldSeries22k);
+                    const p24 = param.seriesPrices.get(goldSeries24k);
+                    const pBuy = param.seriesPrices.get(goldSeriesBuy22k);
+                    const pSell = param.seriesPrices.get(goldSeriesSell22k);
+                    const pFcast = param.seriesPrices.get(goldSeriesForecast);
+                    const pHigh = param.seriesPrices.get(goldSeriesCorridorHigh);
+                    const pLow = param.seriesPrices.get(goldSeriesCorridorLow);
+
+                    const readoutEl = document.getElementById('gold-hover-readout');
+                    if (readoutEl) {
+                        let text = `📅 ${timeStr} | `;
+                        if (p22 !== undefined) text += `22K: ${CURRENCY_SYM} ${p22.toFixed(2)}/g | `;
+                        if (p24 !== undefined) text += `24K: ${CURRENCY_SYM} ${p24.toFixed(2)}/g | `;
+                        if (pBuy !== undefined) text += `Buy (GST): ${CURRENCY_SYM} ${pBuy.toFixed(2)} | `;
+                        if (pSell !== undefined) text += `Sell: ${CURRENCY_SYM} ${pSell.toFixed(2)} | `;
+                        if (pFcast !== undefined) text += `🎯 Target Path: ${CURRENCY_SYM} ${pFcast.toFixed(2)} | `;
+                        if (pHigh !== undefined) text += `🔴 30D High: ${CURRENCY_SYM} ${pHigh.toFixed(2)} | `;
+                        if (pLow !== undefined) text += `🟢 30D Low: ${CURRENCY_SYM} ${pLow.toFixed(2)}`;
+                        readoutEl.innerText = text;
+                    }
+                }
+            });
+
+            fetchCandles(currentTimeframe);
+
+            window.addEventListener('resize', () => {
+                if (chart && container) {
+                    chart.applyOptions({ width: container.clientWidth });
+                }
+            });
+        } catch (e) {
+            console.error("Chart init error:", e);
+            loadingEl.style.display = 'none';
+        }
+    }
+
+    function setChartMode(mode, scrollToChart = false) {
+        currentChartMode = mode;
+        const tabOhlcv = document.getElementById('tab-chart-ohlcv');
+        const tabPhysical = document.getElementById('tab-chart-physical');
+        const tfControls = document.getElementById('timeframe-controls');
+        const ohlcvLegend = document.getElementById('ohlcv-legend-bar');
+        const physicalLegend = document.getElementById('physical-gold-legend-bar');
+
+        if (mode === 'ohlcv') {
+            tabOhlcv.classList.add('active');
+            tabPhysical.classList.remove('active');
+            tfControls.style.display = 'flex';
+            ohlcvLegend.style.display = 'flex';
+            physicalLegend.style.display = 'none';
+
+            // Show candle series, hide physical series
+            if (candleSeries) candleSeries.applyOptions({ visible: true });
+            if (upperBandSeries) upperBandSeries.applyOptions({ visible: true });
+            if (lowerBandSeries) lowerBandSeries.applyOptions({ visible: true });
+
+            if (goldSeries24k) goldSeries24k.applyOptions({ visible: false });
+            if (goldSeries22k) goldSeries22k.applyOptions({ visible: false });
+            if (goldSeries18k) goldSeries18k.applyOptions({ visible: false });
+            if (goldSeriesBuy22k) goldSeriesBuy22k.applyOptions({ visible: false });
+            if (goldSeriesSell22k) goldSeriesSell22k.applyOptions({ visible: false });
+            if (goldSeriesForecast) goldSeriesForecast.applyOptions({ visible: false });
+            if (goldSeriesCorridorHigh) goldSeriesCorridorHigh.applyOptions({ visible: false });
+            if (goldSeriesCorridorLow) goldSeriesCorridorLow.applyOptions({ visible: false });
+
+            fetchCandles(currentTimeframe);
+        } else {
+            tabPhysical.classList.add('active');
+            tabOhlcv.classList.remove('active');
+            tfControls.style.display = 'none';
+            ohlcvLegend.style.display = 'none';
+            physicalLegend.style.display = 'flex';
+
+            // Hide candle series, show physical series based on checkboxes
+            if (candleSeries) candleSeries.applyOptions({ visible: false });
+            if (upperBandSeries) upperBandSeries.applyOptions({ visible: false });
+            if (lowerBandSeries) lowerBandSeries.applyOptions({ visible: false });
+
+            fetchPhysicalGoldChart();
+        }
+
+        if (scrollToChart) {
+            const chartCard = document.getElementById('tv-chart-container');
+            if (chartCard) {
+                chartCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+
+    function toggleGoldSeries(seriesKey) {
+        if (currentChartMode !== 'physical') return;
+        const chk24 = document.getElementById('chk-24k');
+        const chk22 = document.getElementById('chk-22k');
+        const chk18 = document.getElementById('chk-18k');
+        const chkBuy = document.getElementById('chk-buy-22k');
+        const chkSell = document.getElementById('chk-sell-22k');
+        const chkForecast = document.getElementById('chk-forecast');
+        const chkCorridorHigh = document.getElementById('chk-corridor-high');
+        const chkCorridorLow = document.getElementById('chk-corridor-low');
+
+        if (goldSeries24k && chk24) goldSeries24k.applyOptions({ visible: chk24.checked });
+        if (goldSeries22k && chk22) goldSeries22k.applyOptions({ visible: chk22.checked });
+        if (goldSeries18k && chk18) goldSeries18k.applyOptions({ visible: chk18.checked });
+        if (goldSeriesBuy22k && chkBuy) goldSeriesBuy22k.applyOptions({ visible: chkBuy.checked });
+        if (goldSeriesSell22k && chkSell) goldSeriesSell22k.applyOptions({ visible: chkSell.checked });
+        if (goldSeriesForecast && chkForecast) goldSeriesForecast.applyOptions({ visible: chkForecast.checked });
+        if (goldSeriesCorridorHigh && chkCorridorHigh) goldSeriesCorridorHigh.applyOptions({ visible: chkCorridorHigh.checked });
+        if (goldSeriesCorridorLow && chkCorridorLow) goldSeriesCorridorLow.applyOptions({ visible: chkCorridorLow.checked });
+    }
+
+    function fetchPhysicalGoldChart() {
+        const loadingEl = document.getElementById('chart-loading');
+        const msgEl = document.getElementById('chart-loading-msg');
+        if (msgEl) msgEl.innerText = "🪙 Loading Physical Gold 1g Historical Rates & Forecast Trajectory...";
+        loadingEl.style.display = 'flex';
+
+        const horizonSelect = document.getElementById('forecast-horizon-select');
+        const horizonDays = horizonSelect ? parseInt(horizonSelect.value) : 30;
+
+        fetch(`/api/prediction/physical-gold-chart/?symbol=${encodeURIComponent(CURRENT_SYMBOL)}&timeframe=${currentTimeframe}&horizon_days=${horizonDays}`)
+            .then(res => res.json())
+            .then(data => {
+                physicalGoldDataCache = data;
+                if (data.status === 'success') {
+                    const chk24 = document.getElementById('chk-24k') ? document.getElementById('chk-24k').checked : true;
+                    const chk22 = document.getElementById('chk-22k') ? document.getElementById('chk-22k').checked : true;
+                    const chk18 = document.getElementById('chk-18k') ? document.getElementById('chk-18k').checked : true;
+                    const chkBuy = document.getElementById('chk-buy-22k') ? document.getElementById('chk-buy-22k').checked : true;
+                    const chkSell = document.getElementById('chk-sell-22k') ? document.getElementById('chk-sell-22k').checked : true;
+                    const chkForecast = document.getElementById('chk-forecast') ? document.getElementById('chk-forecast').checked : true;
+                    const chkCorridorHigh = document.getElementById('chk-corridor-high') ? document.getElementById('chk-corridor-high').checked : true;
+                    const chkCorridorLow = document.getElementById('chk-corridor-low') ? document.getElementById('chk-corridor-low').checked : true;
+
+                    if (goldSeries24k && data.series_24k_1g) {
+                        goldSeries24k.setData(data.series_24k_1g);
+                        goldSeries24k.applyOptions({ visible: chk24 });
+                    }
+                    if (goldSeries22k && data.series_22k_1g) {
+                        goldSeries22k.setData(data.series_22k_1g);
+                        goldSeries22k.applyOptions({ visible: chk22 });
+                    }
+                    if (goldSeries18k && data.series_18k_1g) {
+                        goldSeries18k.setData(data.series_18k_1g);
+                        goldSeries18k.applyOptions({ visible: chk18 });
+                    }
+                    if (goldSeriesBuy22k && data.series_buy_22k_1g) {
+                        goldSeriesBuy22k.setData(data.series_buy_22k_1g);
+                        goldSeriesBuy22k.applyOptions({ visible: chkBuy });
+                    }
+                    if (goldSeriesSell22k && data.series_sell_22k_1g) {
+                        goldSeriesSell22k.setData(data.series_sell_22k_1g);
+                        goldSeriesSell22k.applyOptions({ visible: chkSell });
+                    }
+                    if (goldSeriesForecast && data.forecast_path_22k) {
+                        goldSeriesForecast.setData(data.forecast_path_22k);
+                        goldSeriesForecast.applyOptions({ visible: chkForecast });
+                    }
+                    if (goldSeriesCorridorHigh && data.corridor_high_path) {
+                        goldSeriesCorridorHigh.setData(data.corridor_high_path);
+                        goldSeriesCorridorHigh.applyOptions({ visible: chkCorridorHigh });
+                    }
+                    if (goldSeriesCorridorLow && data.corridor_low_path) {
+                        goldSeriesCorridorLow.setData(data.corridor_low_path);
+                        goldSeriesCorridorLow.applyOptions({ visible: chkCorridorLow });
+                    }
+
+                    if (chart) chart.timeScale().fitContent();
+                }
+                loadingEl.style.display = 'none';
+            })
+            .catch(err => {
+                console.error("Error loading physical gold chart:", err);
+                loadingEl.style.display = 'none';
+            });
+    }
+
+    function fetchCandles(timeframe) {
+        if (currentChartMode !== 'ohlcv') return;
+        const loadingEl = document.getElementById('chart-loading');
+        const msgEl = document.getElementById('chart-loading-msg');
+        if (msgEl) msgEl.innerText = `⚡ Syncing High-Precision OHLCV Feed for ${CURRENT_SYMBOL}...`;
+        loadingEl.style.display = 'flex';
+
+        fetch(`/api/market/candles/${encodeURIComponent(CURRENT_SYMBOL)}/?timeframe=${timeframe}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.candles && data.candles.length > 0 && candleSeries) {
+                    try {
+                        candleSeries.setData(data.candles);
+
+                        {% if latest_prediction %}
+                        const lastBars = data.candles.slice(-15);
+                        const upperVal = parseFloat("{{ latest_prediction.upper_corridor_band }}");
+                        const lowerVal = parseFloat("{{ latest_prediction.lower_corridor_band }}");
+                        if (!isNaN(upperVal) && !isNaN(lowerVal)) {
+                            const upperData = lastBars.map(c => ({ time: c.time, value: upperVal }));
+                            const lowerData = lastBars.map(c => ({ time: c.time, value: lowerVal }));
+                            upperBandSeries.setData(upperData);
+                            lowerBandSeries.setData(lowerData);
+                        }
+                        {% endif %}
+                        if (chart) chart.timeScale().fitContent();
+                    } catch (setDataErr) {
+                        console.warn("Error setting chart data:", setDataErr);
+                    }
+                }
+                loadingEl.style.display = 'none';
+            })
+            .catch(err => {
+                console.error("Error fetching candles:", err);
+                loadingEl.style.display = 'none';
+            });
+    }
+
+    function changeTimeframe(tf) {
+        currentTimeframe = tf;
+        document.querySelectorAll('#timeframe-controls button').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        fetchCandles(tf);
+    }
+
+
+    // Asset Directory Tabs & Search Filter
+    function switchCategory(cat) {
+        activeCategory = cat;
+        document.querySelectorAll('.category-tab').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        filterAssets();
+    }
+
+    function filterAssets() {
+        const query = document.getElementById('asset-search-input').value.toLowerCase().trim();
+        const items = document.querySelectorAll('#asset-list-container .asset-item');
+
+        items.forEach(el => {
+            const sym = el.getAttribute('data-symbol') || '';
+            const name = el.getAttribute('data-name') || '';
+            const type = el.getAttribute('data-type') || '';
+            const market = el.getAttribute('data-market') || '';
+
+            let matchesCat = true;
+            if (activeCategory === 'COMMODITY') {
+                matchesCat = (type === 'COMMODITY');
+            } else if (activeCategory === 'EQUITY_US') {
+                matchesCat = (type === 'EQUITY' && market === 'USA');
+            } else if (activeCategory === 'EQUITY_IN') {
+                matchesCat = (type === 'EQUITY' && market === 'INDIA');
+            } else if (activeCategory === 'INDEX') {
+                matchesCat = (type === 'INDEX');
+            }
+
+            const matchesSearch = sym.includes(query) || name.includes(query);
+
+            if (matchesCat && matchesSearch) {
+                el.style.display = 'flex';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    }
+
+    function generateNewForecast() {
+        const btn = document.getElementById('btn-predict');
+        const horizonSelect = document.getElementById('forecast-horizon-select');
+        const horizonDays = horizonSelect ? parseInt(horizonSelect.value) : 7;
+
+        btn.disabled = true;
+        btn.innerText = `⏳ Running AI Forecast for ${horizonDays} Days...`;
+
+        fetch(`/api/prediction/forecast/${encodeURIComponent(CURRENT_SYMBOL)}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ timeframe: currentTimeframe, horizon_days: horizonDays })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                alert(data.message || "Quota exceeded or error generating forecast.");
+                btn.disabled = false;
+                btn.innerText = "⚡ Generate Real-Time AI Forecast";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.disabled = false;
+            btn.innerText = "⚡ Generate Real-Time AI Forecast";
+        });
+    }
+
+    function triggerFullDataRefresh() {
+        const btnTop = document.getElementById('btn-full-refresh-top');
+        const btnCard = document.getElementById('btn-full-refresh-card');
+        const horizonSelect = document.getElementById('forecast-horizon-select');
+        const horizonDays = horizonSelect ? parseInt(horizonSelect.value) : 7;
+
+        if (btnTop) {
+            btnTop.disabled = true;
+            btnTop.innerHTML = '<span class="spin">🔄</span> Syncing Latest Data...';
+        }
+        if (btnCard) {
+            btnCard.disabled = true;
+            btnCard.innerHTML = '<span class="spin">🔄</span> Syncing Latest Data & AI Forecast...';
+        }
+
+        const toastEl = document.getElementById('sync-timestamp-badge');
+        if (toastEl) {
+            toastEl.innerHTML = '⚡ <em>Syncing live OHLCV, macro indicators & news sentiment...</em>';
+        }
+
+        fetch('/api/prediction/full-refresh/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                symbol: CURRENT_SYMBOL,
+                timeframe: currentTimeframe,
+                horizon_days: horizonDays
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 1. Update Today's Price vs Target Price & Target Date Milestones
+                const todayPriceEl = document.getElementById('milestone-today-price');
+                if (todayPriceEl) todayPriceEl.innerText = `${data.currency} ${data.today_price}`;
+
+                const todayDateEl = document.getElementById('milestone-today-date');
+                if (todayDateEl) todayDateEl.innerText = `Recorded Today (${data.today_date})`;
+
+                const targetPriceEl = document.getElementById('milestone-target-price');
+                if (targetPriceEl) targetPriceEl.innerText = `${data.currency} ${data.target_price}`;
+
+                const targetChangeEl = document.getElementById('milestone-target-change');
+                if (targetChangeEl) {
+                    const sign = data.target_change_pct >= 0 ? '▲ +' : '▼ ';
+                    targetChangeEl.innerText = `${sign}${data.target_change_pct}% Expected`;
+                    targetChangeEl.style.color = data.target_change_pct >= 0 ? 'var(--bullish-green)' : 'var(--bearish-red)';
+                }
+
+                const targetDateEl = document.getElementById('milestone-target-date');
+                if (targetDateEl) targetDateEl.innerText = data.target_date;
+
+                const lastSyncEl = document.getElementById('last-sync-time');
+                if (lastSyncEl) lastSyncEl.innerText = data.today_date;
+
+                const horizonBadge = document.getElementById('current-horizon-badge');
+                if (horizonBadge) horizonBadge.innerText = data.horizon_label;
+
+                const horizonLabel = document.getElementById('current-horizon-label');
+                if (horizonLabel) horizonLabel.innerText = data.horizon_label;
+
+                // 2. Update Signal & Confidence
+                const signalBadge = document.getElementById('signal-badge-el');
+                if (signalBadge) {
+                    signalBadge.className = `signal-box signal-${data.signal.toLowerCase().replace('_', '')}`;
+                    signalBadge.innerText = data.signal_display;
+                }
+
+                const confVal = document.getElementById('confidence-score-val');
+                if (confVal) confVal.innerText = `${data.confidence}%`;
+
+                const confBar = document.getElementById('confidence-bar-fill');
+                if (confBar) confBar.style.width = `${data.confidence}%`;
+
+                // 3. Update Trade Setup
+                const entryEl = document.getElementById('val-suggested-entry');
+                if (entryEl) entryEl.innerText = `${data.currency} ${data.suggested_entry}`;
+
+                const stopLossEl = document.getElementById('val-stop-loss');
+                if (stopLossEl) stopLossEl.innerText = `${data.currency} ${data.stop_loss}`;
+
+                const tp2El = document.getElementById('val-take-profit-2');
+                if (tp2El) tp2El.innerText = `${data.currency} ${data.take_profit_2}`;
+
+                const rrEl = document.getElementById('val-risk-reward');
+                if (rrEl) rrEl.innerText = `1 : ${data.risk_reward_ratio}`;
+
+                // 4. Update Multi-factor scores
+                const techScoreEl = document.getElementById('val-technical-score');
+                if (techScoreEl) {
+                    techScoreEl.innerText = (data.technical_score >= 0 ? '+' : '') + data.technical_score.toFixed(2);
+                    techScoreEl.style.color = data.technical_score >= 0 ? 'var(--bullish-green)' : 'var(--bearish-red)';
+                }
+
+                const macroScoreEl = document.getElementById('val-macro-score');
+                if (macroScoreEl) {
+                    macroScoreEl.innerText = (data.macro_score >= 0 ? '+' : '') + data.macro_score.toFixed(2);
+                    macroScoreEl.style.color = data.macro_score >= 0 ? 'var(--bullish-green)' : 'var(--bearish-red)';
+                }
+
+                const sentScoreEl = document.getElementById('val-sentiment-score');
+                if (sentScoreEl) {
+                    sentScoreEl.innerText = (data.sentiment_score >= 0 ? '+' : '') + data.sentiment_score.toFixed(2);
+                    sentScoreEl.style.color = data.sentiment_score >= 0 ? 'var(--bullish-green)' : 'var(--bearish-red)';
+                }
+
+                const summaryEl = document.getElementById('ai-summary-text');
+                if (summaryEl) summaryEl.innerText = data.summary_analysis;
+
+                // 5. Update Physical Gold 1g Cards
+                if (data.physical_gold) {
+                    const pg = data.physical_gold;
+                    const r24_1g = document.getElementById('rate-24k-1g-today');
+                    if (r24_1g) r24_1g.innerHTML = `${pg.currency_symbol} ${pg.current_24k_1g} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g</small>`;
+
+                    const r24_10g = document.getElementById('rate-24k-10g-today');
+                    if (r24_10g) r24_10g.innerText = `10g: ${pg.currency_symbol} ${pg.current_24k_10g}`;
+
+                    const p24_1g = document.getElementById('pred-24k-1g');
+                    if (p24_1g) p24_1g.innerText = `${pg.currency_symbol} ${pg.pred_24k_1g} / 1g`;
+
+                    const r22_1g = document.getElementById('rate-22k-1g-today');
+                    if (r22_1g) r22_1g.innerHTML = `${pg.currency_symbol} ${pg.current_22k_1g} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g</small>`;
+
+                    const r22_ref = document.getElementById('rate-22k-ref-today');
+                    if (r22_ref) r22_ref.innerText = `8g (1 Pavan): ${pg.currency_symbol} ${pg.current_22k_8g} • 10g: ${pg.currency_symbol} ${pg.current_22k_10g}`;
+
+                    const p22_1g = document.getElementById('pred-22k-1g');
+                    if (p22_1g) p22_1g.innerText = `${pg.currency_symbol} ${pg.pred_22k_1g} / 1g`;
+
+                    const r18_1g = document.getElementById('rate-18k-1g-today');
+                    if (r18_1g) r18_1g.innerHTML = `${pg.currency_symbol} ${pg.current_18k_1g} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g</small>`;
+
+                    const r18_10g = document.getElementById('rate-18k-10g-today');
+                    if (r18_10g) r18_10g.innerText = `10g: ${pg.currency_symbol} ${pg.current_18k_10g}`;
+
+                    const p18_1g = document.getElementById('pred-18k-1g');
+                    if (p18_1g) p18_1g.innerText = `${pg.currency_symbol} ${pg.pred_18k_1g} / 1g`;
+
+                    const rBuy22 = document.getElementById('rate-buy-22k-1g');
+                    if (rBuy22) rBuy22.innerHTML = `${pg.currency_symbol} ${pg.rec_buy_price_22k_1g} <small style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">/ 1g</small>`;
+
+                    const pBuy22 = document.getElementById('pred-buy-22k-1g');
+                    if (pBuy22) pBuy22.innerText = `${pg.currency_symbol} ${pg.target_buy_predicted_22k_1g} / 1g`;
+
+                    const rSell22 = document.getElementById('rate-sell-22k-1g');
+                    if (rSell22) rSell22.innerHTML = `${pg.currency_symbol} ${pg.rec_sell_price_22k_1g} <small style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">/ 1g</small>`;
+
+                    const pSell22 = document.getElementById('pred-sell-22k-1g');
+                    if (pSell22) pSell22.innerText = `${pg.currency_symbol} ${pg.target_sell_predicted_22k_1g} / 1g`;
+
+                    document.querySelectorAll('.gold-target-date-label').forEach(el => {
+                        el.innerText = data.target_date;
+                    });
+
+                    const pBadge = document.getElementById('physical-ai-strategy-badge');
+                    if (pBadge) pBadge.innerText = `⚡ AI Strategy: ${pg.action_recommendation}`;
+
+                    // Update 30-Day Predicted High & Low Corridor (10-Year Volatility + Live News AI)
+                    if (pg.corridor_30d) {
+                        const c = pg.corridor_30d;
+                        const spreadEl = document.getElementById('corridor-spread-pct');
+                        if (spreadEl) spreadEl.innerText = `± ${c.total_spread_range_pct}%`;
+
+                        const highPctEl = document.getElementById('corridor-high-pct');
+                        if (highPctEl) highPctEl.innerText = `+${c.high_surge_pct}% Surge`;
+
+                        const high22kEl = document.getElementById('corridor-high-22k');
+                        if (high22kEl) high22kEl.innerHTML = `${pg.currency_symbol} ${c.pred_high_22k_1g} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g (22K)</small>`;
+
+                        const high24kEl = document.getElementById('corridor-high-24k');
+                        if (high24kEl) high24kEl.innerHTML = `24K Pure High: <strong style="color: var(--gold-primary);">${pg.currency_symbol} ${c.pred_high_24k_1g} / 1g</strong> • 8g (1 Pavan): ${pg.currency_symbol} ${c.pred_high_22k_8g}`;
+
+                        const highDateEl = document.getElementById('corridor-high-date');
+                        if (highDateEl && c.high_eta_date) highDateEl.innerText = new Date(c.high_eta_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                        const lowPctEl = document.getElementById('corridor-low-pct');
+                        if (lowPctEl) lowPctEl.innerText = `${c.low_dip_pct}% Dip`;
+
+                        const low22kEl = document.getElementById('corridor-low-22k');
+                        if (low22kEl) low22kEl.innerHTML = `${pg.currency_symbol} ${c.pred_low_22k_1g} <small style="font-size: 0.85rem; color: var(--text-muted);">/ 1g (22K)</small>`;
+
+                        const low24kEl = document.getElementById('corridor-low-24k');
+                        if (low24kEl) low24kEl.innerHTML = `24K Support Low: <strong style="color: var(--gold-primary);">${pg.currency_symbol} ${c.pred_low_24k_1g} / 1g</strong> • 8g (1 Pavan): ${pg.currency_symbol} ${c.pred_low_22k_8g}`;
+
+                        const lowDateEl = document.getElementById('corridor-low-date');
+                        if (lowDateEl && c.low_eta_date) lowDateEl.innerText = new Date(c.low_eta_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                        const volValEl = document.getElementById('corridor-vol-val');
+                        if (volValEl) volValEl.innerText = `${c.vol_10y_30d_pct}% (30D Sigma)`;
+
+                        const newsValEl = document.getElementById('corridor-news-val');
+                        if (newsValEl) newsValEl.innerText = `${c.news_impact_pct >= 0 ? '+' : ''}${c.news_impact_pct}% Momentum`;
+
+                        const macroValEl = document.getElementById('corridor-macro-val');
+                        if (macroValEl) macroValEl.innerText = `${c.macro_impact_pct >= 0 ? '+' : ''}${c.macro_impact_pct}% Support`;
+
+                        const seasonValEl = document.getElementById('corridor-season-val');
+                        if (seasonValEl) seasonValEl.innerText = `+${c.seasonality_bias_pct}% Demand Surge`;
+                    }
+
+                    rate22kPerGram = pg.current_22k_1g;
+                    calculateJewelryPrice();
+                }
+
+
+                // 6. Update Chart
+                if (currentChartMode === 'physical') {
+                    fetchPhysicalGoldChart();
+                } else if (data.candles && data.candles.length > 0 && candleSeries) {
+                    try {
+                        candleSeries.setData(data.candles);
+                        if (upperBandSeries && lowerBandSeries && data.upper_corridor_band) {
+                            const lastBars = data.candles.slice(-15);
+                            const upperData = lastBars.map(c => ({ time: c.time, value: data.upper_corridor_band }));
+                            const lowerData = lastBars.map(c => ({ time: c.time, value: data.lower_corridor_band }));
+                            upperBandSeries.setData(upperData);
+                            lowerBandSeries.setData(lowerData);
+                        }
+                    } catch (chartErr) {
+                        console.warn("Chart data refresh warn:", chartErr);
+                    }
+                }
+
+
+                if (toastEl) {
+                    toastEl.innerHTML = `Last Synced: <strong style="color: var(--bullish-green);">${data.today_date}</strong> (Live Synced)`;
+                }
+            } else {
+                alert(data.message || "Error refreshing market data.");
+            }
+        })
+        .catch(err => {
+            console.error("Full refresh error:", err);
+            alert("Error syncing market data feeds. Please try again.");
+        })
+        .finally(() => {
+            if (btnTop) {
+                btnTop.disabled = false;
+                btnTop.innerHTML = '<span id="refresh-icon-top">🔄</span> Full Refresh Latest Data';
+            }
+            if (btnCard) {
+                btnCard.disabled = false;
+                btnCard.innerHTML = '🔄 Full Refresh Data & Recalculate Target';
+            }
+        });
+    }
+
+    // What-If Scenario Simulator
+    function updateScenario() {
+        const fedRate = parseFloat(document.getElementById('slider-fed-rate').value);
+        const dxy = parseFloat(document.getElementById('slider-dxy').value);
+        const usdinr = parseFloat(document.getElementById('slider-usdinr').value);
+
+        document.getElementById('val-fed-rate').innerText = (fedRate >= 0 ? "+" : "") + fedRate + " bps";
+        document.getElementById('val-dxy').innerText = (dxy >= 0 ? "+" : "") + dxy.toFixed(1) + "%";
+        document.getElementById('val-usdinr').innerText = (usdinr >= 0 ? "+" : "") + usdinr.toFixed(1) + "%";
+
+        fetch('/api/prediction/simulate-scenario/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                symbol: CURRENT_SYMBOL,
+                fed_rate_change_bps: fedRate,
+                dxy_change_pct: dxy,
+                usdinr_change_pct: usdinr
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.simulated_price) {
+                document.getElementById('sim-price').innerText = data.currency + " " + data.simulated_price;
+                const sign = data.net_impact_pct >= 0 ? "+" : "";
+                const impactEl = document.getElementById('sim-impact');
+                impactEl.innerText = `${sign}${data.net_impact_pct}% (${data.direction})`;
+                impactEl.style.color = data.net_impact_pct > 0 ? "var(--bullish-green)" : data.net_impact_pct < 0 ? "var(--bearish-red)" : "var(--text-main)";
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        initChart();
+        calculateJewelryPrice();
+    });
+</script>
+
+{% endblock %}

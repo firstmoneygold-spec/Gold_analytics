@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}TrendMaster AI — Gold & Stock Price Prediction Platform (USA 🇺🇸 & India 🇮🇳){% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div style="text-align: center; padding: 3rem 1rem 4rem 1rem; max-width: 960px; margin: 0 auto;">
+    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-gold); padding: 0.4rem 1rem; border-radius: 20px; margin-bottom: 1.5rem; box-shadow: var(--shadow-glow);">
+        <span style="color: var(--gold-primary); font-size: 0.9rem; font-weight: 700;">★ ADVANCED QUANT & NLP ENGINE</span>
+        <span style="color: var(--text-muted); font-size: 0.85rem;">| USA 🇺🇸 & India 🇮🇳 Markets</span>
+    </div>
+
+    <h1 style="font-size: 3rem; font-weight: 800; line-height: 1.2; margin-bottom: 1.25rem;">
+        Predict <span class="gold-text">Gold & Stock Prices</span> with Institutional-Grade AI
+    </h1>
+    <p style="font-size: 1.2rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 2.5rem;">
+        Combining 10+ years of historical time-series data, macroeconomic interest rate dynamics, and real-time FinBERT news sentiment to deliver <strong>90%+ directional win rates</strong>.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+        <a href="{% url 'users:register' %}" class="btn btn-gold" style="font-size: 1.1rem; padding: 0.85rem 2rem;">
+            🚀 Start Free (3 Daily Predictions)
+        </a>
+        <a href="{% url 'users:login' %}" class="btn btn-outline" style="font-size: 1.1rem; padding: 0.85rem 2rem;">
+            Sign In to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Live Market Preview Grid -->
+<div style="margin-bottom: 4rem;">
+    <h2 style="font-size: 1.5rem; text-align: center; margin-bottom: 1.5rem; color: var(--text-muted);">
+        Live Dual-Market Asset Coverage
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+        {% for asset in featured_assets %}
+        <div class="card" style="transition: transform 0.2s ease; border: 1px solid var(--border-color);" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div>
+                    <span style="font-weight: 700; font-size: 1.1rem; color: var(--gold-primary);">{{ asset.symbol }}</span>
+                    <small style="color: var(--text-muted); display: block;">{{ asset.market }} • {{ asset.asset_type }}</small>
+                </div>
+                <span class="badge {% if asset.market == 'INDIA' %}badge-free{% else %}badge-pro{% endif %}">
+                    {% if asset.market == 'INDIA' %}🇮🇳 INR{% else %}🇺🇸 USD{% endif %}
+                </span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <div style="font-size: 1.5rem; font-weight: 700;">
+                        {{ asset.currency }} {{ asset.last_price|default:"--" }}
+                    </div>
+                    <small style="color: var(--text-muted);">per {{ asset.display_unit }}</small>
+                </div>
+                <div style="text-align: right; color: {% if asset.price_change_pct_24h >= 0 %}var(--bullish-green){% else %}var(--bearish-red){% endif %}; font-weight: 600;">
+                    {% if asset.price_change_pct_24h >= 0 %}▲ +{% else %}▼ {% endif %}{{ asset.price_change_pct_24h|default:"0.0" }}%
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Features Breakdown -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 4rem;">
+    <div class="card">
+        <div style="font-size: 2rem; margin-bottom: 0.75rem;">📊</div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gold-primary);">TradingView Interactive Terminal</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+            High-speed candlestick charts with custom AI prediction overlays, support/resistance bands, and dynamic Entry & Stop-Loss markers.
+        </p>
+    </div>
+
+    <div class="card">
+        <div style="font-size: 2rem; margin-bottom: 0.75rem;">🧠</div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gold-primary);">FinBERT Real-Time News NLP</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+            Continuous sentiment scanning of US & Indian financial headlines (Reuters, Bloomberg, Moneycontrol) to quantify immediate market impact.
+        </p>
+    </div>
+
+    <div class="card">
+        <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚡</div>
+        <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--gold-primary);">Macro "What-If" Simulator</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+            Simulate hypothetical market shocks (e.g. Fed 50 bps rate cut, DXY drop, USD/INR depreciation) to forecast immediate price reactions.
+        </p>
+    </div>
+</div>
+
+<!-- CTA Banner -->
+<div class="card" style="background: linear-gradient(135deg, #181d28, #11141c); border: 1px solid var(--border-gold); text-align: center; padding: 3rem 1.5rem;">
+    <h2 style="font-size: 2rem; margin-bottom: 0.75rem;">Ready to Trade with Mathematical Precision?</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+        Sign up in under 30 seconds to unlock your free AI predictions for Gold, Silver, S&P 500, and Nifty 50.
+    </p>
+    <a href="{% url 'users:register' %}" class="btn btn-gold" style="font-size: 1.1rem; padding: 0.85rem 2.5rem;">
+        Get Started Free Today
+    </a>
+</div>
+{% endblock %}

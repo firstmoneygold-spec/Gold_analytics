@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account — TrendMaster AI{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card" style="max-width: 540px;">
+        <div class="auth-header">
+            <h1>Join <span class="gold-text">TrendMaster AI</span></h1>
+            <p>Start with 3 Free Daily AI Predictions for Gold & Stocks</p>
+        </div>
+
+        <form method="POST" action="{% url 'users:register' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label" for="id_email">Work / Trading Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <small style="color: var(--bearish-red);">{{ form.email.errors.0 }}</small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_full_name">Full Name</label>
+                {{ form.full_name }}
+                {% if form.full_name.errors %}
+                    <small style="color: var(--bearish-red);">{{ form.full_name.errors.0 }}</small>
+                {% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_preferred_market">Primary Market</label>
+                    {{ form.preferred_market }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_preferred_currency">Base Currency</label>
+                    {{ form.preferred_currency }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_preferred_gold_unit">Gold Display Unit</label>
+                {{ form.preferred_gold_unit }}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_password">Password</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <small style="color: var(--bearish-red);">{{ form.password.errors.0 }}</small>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_confirm_password">Confirm Password</label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}
+                        <small style="color: var(--bearish-red);">{{ form.confirm_password.errors.0 }}</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-gold btn-block" style="margin-top: 1rem;">
+                Create Free Trader Account
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            Already have an account? <a href="{% url 'users:login' %}">Sign In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

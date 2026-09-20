@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Pricing & Subscription Plans — TrendMaster AI{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 3rem;">
+    <h1 style="font-size: 2.25rem; margin-bottom: 0.5rem;">Supercharge Your Trading with <span class="gold-text">AI Forecasts</span></h1>
+    <p style="color: var(--text-muted); font-size: 1.1rem;">Choose your plan tailored for USA Wall Street & Indian Dalal Street markets.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto;">
+    <!-- Free Tier -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <span class="badge badge-free" style="margin-bottom: 1rem;">Starter</span>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Free Explorer</h2>
+            <div style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">$0 / ₹0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">/ forever</span></div>
+            <ul style="list-style: none; padding: 0; color: var(--text-muted); line-height: 2;">
+                <li>✓ 3 Daily AI Predictions (Gold & Stocks)</li>
+                <li>✓ Standard 1-Day Timeframe</li>
+                <li>✓ Basic Macro Sentiment Feed</li>
+                <li>✓ Web Trading Terminal Access</li>
+            </ul>
+        </div>
+        <a href="{% url 'users:profile' %}" class="btn btn-outline btn-block" style="margin-top: 1.5rem;">Current Plan</a>
+    </div>
+
+    <!-- Pro Trader Tier -->
+    <div class="card" style="border: 2px solid var(--gold-primary); box-shadow: var(--shadow-glow); display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+        <div style="position: absolute; top: -12px; right: 20px;">
+            <span class="badge badge-pro">RECOMMENDED</span>
+        </div>
+        <div>
+            <span class="badge badge-pro" style="margin-bottom: 1rem;">Professional</span>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Pro Trader</h2>
+            <div style="font-size: 2.2rem; font-weight: 700; margin-bottom: 1rem; color: var(--gold-primary);">
+                {% if user.preferred_currency == 'INR' or user_currency == 'INR' %}
+                    ₹1,999 <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">/ month</span>
+                {% else %}
+                    $29 <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">/ month</span>
+                {% endif %}
+            </div>
+            <ul style="list-style: none; padding: 0; color: var(--text-main); line-height: 2.1;">
+                <li>⚡ <strong>Unlimited Real-Time AI Predictions</strong></li>
+                <li>⚡ Multi-Timeframe Forecasts (15M, 1H, 4H, 1D, 1W)</li>
+                <li>⚡ Dynamic Entry, Stop-Loss & Take-Profit Targets</li>
+                <li>⚡ FinBERT Live Financial News Sentiment</li>
+                <li>⚡ Macro "What-If" Scenario Simulator</li>
+                <li>⚡ Instant Telegram & WhatsApp Breakout Alerts</li>
+                <li>⚡ REST API Token with 1,000 requests/day</li>
+            </ul>
+        </div>
+
+        {% if user.is_authenticated %}
+        <form method="POST" action="{% url 'billing:checkout' %}" style="margin-top: 1.5rem;">
+            {% csrf_token %}
+            <input type="hidden" name="plan" value="PRO_MONTHLY">
+            <input type="hidden" name="gateway" value="{% if user.preferred_currency == 'INR' %}RAZORPAY{% else %}STRIPE{% endif %}">
+            <button type="submit" class="btn btn-gold btn-block">
+                ⚡ Upgrade to Pro Trader ({% if user.preferred_currency == 'INR' %}₹1,999 via UPI/Card{% else %}$29 via Stripe{% endif %})
+            </button>
+        </form>
+        {% else %}
+        <a href="{% url 'users:register' %}" class="btn btn-gold btn-block" style="margin-top: 1.5rem;">
+            Get Started with Pro Trader
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

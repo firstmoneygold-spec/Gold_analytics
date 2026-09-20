@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Trader Profile & SaaS Settings — TrendMaster AI{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Trader Profile & Settings</h1>
+    <p style="color: var(--text-muted);">Manage your market preferences, notification channels, and SaaS subscription tier.</p>
+</div>
+
+<div class="profile-grid">
+    <!-- Left Column: Subscription & Quota Card -->
+    <div>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h2 style="font-size: 1.25rem;">Subscription Plan</h2>
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span style="color: var(--text-muted);">Current Tier</span>
+                    {% if user.is_pro_or_higher %}
+                        <span class="badge badge-pro">{{ user.subscription_tier }}</span>
+                    {% else %}
+                        <span class="badge badge-free">{{ user.subscription_tier }}</span>
+                    {% endif %}
+                </div>
+
+                <div style="background: var(--bg-input); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; border: 1px solid var(--border-color);">
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem;">Daily AI Quota Status:</div>
+                    <div style="font-weight: 600; color: {% if can_predict %}var(--bullish-green){% else %}var(--bearish-red){% endif %};">
+                        {{ quota_msg }}
+                    </div>
+                </div>
+
+                {% if not user.is_pro_or_higher %}
+                <div style="text-align: center;">
+                    <a href="{% url 'billing:pricing' %}" class="btn btn-gold btn-block" style="font-size: 0.9rem;">
+                        ⚡ Upgrade to Pro Trader
+                    </a>
+                    <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                        $29/mo (USA) or ₹1,999/mo (India)
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- API Key & Webhook Tokens -->
+        <div class="card">
+            <div class="card-header">
+                <h2 style="font-size: 1.25rem;">REST API Token</h2>
+            </div>
+            <div style="margin-bottom: 0.5rem;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    Use this token in the <code>Authorization: Token &lt;key&gt;</code> header to fetch live predictions programmatically.
+                </p>
+                <div style="background: var(--bg-input); padding: 0.75rem; border-radius: var(--radius-sm); word-break: break-all; font-family: monospace; font-size: 0.85rem; color: var(--gold-primary); border: 1px solid var(--border-color);">
+                    {{ api_token }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Preferences Form -->
+    <div class="card">
+        <div class="card-header">
+            <h2 style="font-size: 1.25rem;">Market & Alert Preferences</h2>
+        </div>
+
+        <form method="POST" action="{% url 'users:profile' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label" for="id_full_name">Full Name</label>
+                {{ form.full_name }}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_preferred_market">Default Market</label>
+                    {{ form.preferred_market }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_preferred_currency">Base Currency</label>
+                    {{ form.preferred_currency }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_preferred_gold_unit">Gold Display Unit</label>
+                {{ form.preferred_gold_unit }}
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.25rem; margin-top: 1.25rem;">
+                <h3 style="font-size: 1.05rem; margin-bottom: 0.75rem; color: var(--gold-primary);">🔔 Instant Signal Alert Channels</h3>
+                
+                <div class="form-group">
+                    <label class="form-label" for="id_telegram_chat_id">Telegram Chat ID / Channel</label>
+                    {{ form.telegram_chat_id }}
+                    <small style="color: var(--text-dark);">For instant high-probability breakout alerts.</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_whatsapp_number">WhatsApp Number (India/International)</label>
+                    {{ form.whatsapp_number }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-gold" style="margin-top: 1rem;">
+                Save Changes
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
