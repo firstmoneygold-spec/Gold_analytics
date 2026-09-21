@@ -44,6 +44,14 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard:home')
 
+    # Ensure demo accounts exist on fresh cloud deployments
+    try:
+        if not CustomUser.objects.filter(email='trader@trendmaster.ai').exists():
+            from django.core.management import call_command
+            call_command('create_demo_trader')
+    except Exception:
+        pass
+
     if request.method == 'POST':
         form = UserLoginForm(request.POST)
         if form.is_valid():
