@@ -66,9 +66,11 @@ def calculate_30day_gold_corridor(asset: Asset, current_22k: float, current_24k:
     pred_high_22k_8g = round(pred_high_22k * 8.0, 2)
     pred_low_22k_8g = round(pred_low_22k * 8.0, 2)
 
-    # Estimated Timing
-    high_eta_date = now + timedelta(days=24)  # Peak projected towards 3rd-4th week
-    low_eta_date = now + timedelta(days=6)    # Dip projected in early pullback phase
+    # Estimated Timing (Clearly separated 30-day horizon stages)
+    # 1. Early Pullback / Accumulation Support Dip: Week 1 (~Day 6-7)
+    low_eta_date = now + timedelta(days=6)
+    # 2. Bullish Target Peak Expansion: Week 3-4 (~Day 24-25)
+    high_eta_date = now + timedelta(days=24)
 
     return {
         'pred_high_22k_1g': pred_high_22k,
@@ -82,6 +84,8 @@ def calculate_30day_gold_corridor(asset: Asset, current_22k: float, current_24k:
         'total_spread_range_pct': round(high_surge_pct - low_dip_pct, 2),
         'high_eta_date': high_eta_date,
         'low_eta_date': low_eta_date,
+        'high_eta_date_str': high_eta_date.strftime("%b %d, %Y"),
+        'low_eta_date_str': low_eta_date.strftime("%b %d, %Y"),
         'vol_10y_30d_pct': round(vol_30d, 2),
         'news_sentiment_score': sentiment_score,
         'news_impact_pct': news_impact_pct,

@@ -242,10 +242,10 @@
                     🚀 30D Target Peak: <strong style="color: var(--gold-primary); font-size: 0.95rem;" id="pred-24k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_24k_1g }} / 1g</strong>
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.15rem;">
-                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y" }}</strong>
+                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-peak-date-label">{{ physical_gold.corridor_30d.high_eta_date|date:"M d, Y" }}</strong>
                 </div>
                 <div style="color: #34d399; font-size: 0.72rem; margin-top: 0.2rem;">
-                    🛡️ 30D Support Dip: <strong id="corridor-low-24k-summary">{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong>
+                    🛡️ 30D Support Dip: <strong id="corridor-low-24k-summary">{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong> (Dip Window: <span class="gold-dip-date-label">{{ physical_gold.corridor_30d.low_eta_date|date:"M d, Y" }}</span>)
                 </div>
             </div>
         </div>
@@ -285,10 +285,10 @@
                     🚀 30D Target Peak: <strong style="color: var(--gold-primary); font-size: 1.05rem;" id="pred-22k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_22k_1g }} / 1g</strong>
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.15rem;">
-                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y" }}</strong>
+                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-peak-date-label">{{ physical_gold.corridor_30d.high_eta_date|date:"M d, Y" }}</strong>
                 </div>
                 <div style="color: #34d399; font-size: 0.75rem; margin-top: 0.2rem;">
-                    🛡️ 30D Support Dip: <strong id="corridor-low-22k-summary">{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_22k_1g }} / 1g</strong> (Dip Window: {{ physical_gold.corridor_30d.low_eta_date|date:"M d, Y" }})
+                    🛡️ 30D Support Dip: <strong id="corridor-low-22k-summary">{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_22k_1g }} / 1g</strong> (Dip Window: <span class="gold-dip-date-label">{{ physical_gold.corridor_30d.low_eta_date|date:"M d, Y" }}</span>)
                 </div>
             </div>
         </div>
@@ -325,10 +325,10 @@
                     🚀 30D Target Peak: <strong style="color: #93c5fd; font-size: 0.95rem;" id="pred-18k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_18k_1g }} / 1g</strong>
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.15rem;">
-                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y" }}</strong>
+                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-peak-date-label">{{ physical_gold.corridor_30d.high_eta_date|date:"M d, Y" }}</strong>
                 </div>
                 <div style="color: #34d399; font-size: 0.72rem; margin-top: 0.2rem;">
-                    🛡️ 30D Support Dip: <strong>{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong>
+                    🛡️ 30D Support Dip: <strong>{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong> (Dip Window: <span class="gold-dip-date-label">{{ physical_gold.corridor_30d.low_eta_date|date:"M d, Y" }}</span>)
                 </div>
             </div>
         </div>
@@ -1539,6 +1539,16 @@
                     // Update 30-Day Predicted High & Low Corridor (10-Year Volatility + Live News AI)
                     if (pg.corridor_30d) {
                         const c = pg.corridor_30d;
+                        const peakDateStr = c.high_eta_date_str || new Date(c.high_eta_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const dipDateStr = c.low_eta_date_str || new Date(c.low_eta_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                        document.querySelectorAll('.gold-peak-date-label').forEach(el => {
+                            el.innerText = peakDateStr;
+                        });
+                        document.querySelectorAll('.gold-dip-date-label').forEach(el => {
+                            el.innerText = dipDateStr;
+                        });
+
                         const spreadEl = document.getElementById('corridor-spread-pct');
                         if (spreadEl) spreadEl.innerText = `± ${c.total_spread_range_pct}%`;
 
@@ -1552,7 +1562,7 @@
                         if (high24kEl) high24kEl.innerHTML = `24K Pure High: <strong style="color: var(--gold-primary);">${pg.currency_symbol} ${c.pred_high_24k_1g} / 1g</strong> • 8g (1 Pavan): ${pg.currency_symbol} ${c.pred_high_22k_8g}`;
 
                         const highDateEl = document.getElementById('corridor-high-date');
-                        if (highDateEl && c.high_eta_date) highDateEl.innerText = new Date(c.high_eta_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        if (highDateEl) highDateEl.innerText = peakDateStr;
 
                         const lowPctEl = document.getElementById('corridor-low-pct');
                         if (lowPctEl) lowPctEl.innerText = `${c.low_dip_pct}% Dip`;
@@ -1564,7 +1574,7 @@
                         if (low24kEl) low24kEl.innerHTML = `24K Support Low: <strong style="color: var(--gold-primary);">${pg.currency_symbol} ${c.pred_low_24k_1g} / 1g</strong> • 8g (1 Pavan): ${pg.currency_symbol} ${c.pred_low_22k_8g}`;
 
                         const lowDateEl = document.getElementById('corridor-low-date');
-                        if (lowDateEl && c.low_eta_date) lowDateEl.innerText = new Date(c.low_eta_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        if (lowDateEl) lowDateEl.innerText = dipDateStr;
 
                         const volValEl = document.getElementById('corridor-vol-val');
                         if (volValEl) volValEl.innerText = `${c.vol_10y_30d_pct}% (30D Sigma)`;
