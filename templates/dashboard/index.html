@@ -220,9 +220,16 @@
             <div style="font-size: 0.8rem; color: var(--text-muted);" id="rate-24k-10g-today">
                 10g: {{ physical_gold.currency_symbol }} {{ physical_gold.current_24k_10g }}
             </div>
-            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.75rem; color: var(--bullish-green); font-weight: 600;">
-                Target Price: <strong style="color: var(--bullish-green); font-size: 0.9rem;" id="pred-24k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_24k_1g }} / 1g</strong>
-                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 0.15rem;">Target Date: <span class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y"|default:"30 Days" }}</span></div>
+            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.75rem;">
+                <div style="color: var(--bullish-green); font-weight: 700;">
+                    🚀 30D Target Peak: <strong style="color: var(--gold-primary); font-size: 0.95rem;" id="pred-24k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_24k_1g }} / 1g</strong>
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.15rem;">
+                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y" }}</strong>
+                </div>
+                <div style="color: #34d399; font-size: 0.72rem; margin-top: 0.25rem;">
+                    🛡️ 30D Support Dip: <strong>{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong>
+                </div>
             </div>
         </div>
 
@@ -239,9 +246,16 @@
             <div style="font-size: 0.8rem; color: var(--text-muted);" id="rate-22k-ref-today">
                 8g (1 Pavan): {{ physical_gold.currency_symbol }} {{ physical_gold.current_22k_8g }} • 10g: {{ physical_gold.currency_symbol }} {{ physical_gold.current_22k_10g }}
             </div>
-            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--bullish-green); font-weight: 700;">
-                Target Price: <strong style="color: var(--gold-primary); font-size: 1rem;" id="pred-22k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_22k_1g }} / 1g</strong>
-                <div style="color: var(--gold-primary); font-size: 0.75rem; margin-top: 0.15rem;">Expected Target Date: <strong class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y"|default:"30 Days" }}</strong></div>
+            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.8rem;">
+                <div style="color: var(--bullish-green); font-weight: 800;">
+                    🚀 30D Target Peak: <strong style="color: var(--gold-primary); font-size: 1.05rem;" id="pred-22k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_22k_1g }} / 1g</strong>
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.15rem;">
+                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y" }}</strong>
+                </div>
+                <div style="color: #34d399; font-size: 0.75rem; margin-top: 0.25rem;">
+                    🛡️ 30D Support Dip: <strong>{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_22k_1g }} / 1g</strong> (Dip Window: {{ physical_gold.corridor_30d.low_eta_date|date:"M d, Y" }})
+                </div>
             </div>
         </div>
 
@@ -255,9 +269,16 @@
             <div style="font-size: 0.8rem; color: var(--text-muted);" id="rate-18k-10g-today">
                 10g: {{ physical_gold.currency_symbol }} {{ physical_gold.current_18k_10g }}
             </div>
-            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.75rem; color: var(--bullish-green); font-weight: 600;">
-                Target Price: <strong style="color: #93c5fd; font-size: 0.9rem;" id="pred-18k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_18k_1g }} / 1g</strong>
-                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 0.15rem;">Target Date: <span class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y"|default:"30 Days" }}</span></div>
+            <div style="margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color); font-size: 0.75rem;">
+                <div style="color: #93c5fd; font-weight: 700;">
+                    🚀 30D Target Peak: <strong style="color: #93c5fd; font-size: 0.95rem;" id="pred-18k-1g">{{ physical_gold.currency_symbol }} {{ physical_gold.pred_18k_1g }} / 1g</strong>
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.15rem;">
+                    📅 Target Peak Date: <strong style="color: #f87171;" class="gold-target-date-label">{{ physical_gold.tp1_date|date:"M d, Y" }}</strong>
+                </div>
+                <div style="color: #34d399; font-size: 0.72rem; margin-top: 0.25rem;">
+                    🛡️ 30D Support Dip: <strong>{{ physical_gold.currency_symbol }} {{ physical_gold.corridor_30d.pred_low_24k_1g }} / 1g</strong>
+                </div>
             </div>
         </div>
     </div>
