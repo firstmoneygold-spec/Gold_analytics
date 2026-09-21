@@ -1,0 +1,17 @@
+name: Keep Render App Alive 24/7
+
+on:
+  schedule:
+    # Runs every 12 minutes (Render sleeps after 15 minutes)
+    - cron: '*/12 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Web Service
+        run: |
+          echo "⏰ Pinging Render app to prevent cold-start spin-down..."
+          curl -sS --max-time 15 "https://gold-analytics-dkkl.onrender.com/health/" || true
+          echo "✅ Ping completed!"
