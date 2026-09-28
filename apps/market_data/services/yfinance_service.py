@@ -119,17 +119,22 @@ def sync_asset_historical_data(asset: Asset, timeframe: str = HistoricalPrice.Ti
 def get_candles_for_chart(asset: Asset, timeframe: str = HistoricalPrice.Timeframe.DAY_1, limit: int = 300):
     """
     Retrieve candlestick data formatted strictly for TradingView Lightweight Charts (sorted ascending, unique timestamps).
+    Includes automatic fallback to Daily bars if selected intraday timeframe is empty.
     """
-    count = HistoricalPrice.objects.filter(asset=asset, timeframe=timeframe).count()
-    if count == 0:
+    prices_qs = HistoricalPrice.objects.filter(asset=asset, timeframe=timeframe).order_by('-timestamp')[:limit]
+    
+    if prices_qs.count() < 10:
         sync_asset_historical_data(asset, timeframe)
+        prices_qs = HistoricalPrice.objects.filter(asset=asset, timeframe=timeframe).order_by('-timestamp')[:limit]
 
-    prices = (
-        HistoricalPrice.objects.filter(asset=asset, timeframe=timeframe)
-        .order_by('-timestamp')[:limit]
-    )
-    prices = list(reversed(prices))
+    # Fallback to daily bars if intraday bars are not available from exchange feed
+    if prices_qs.count() < 10 and timeframe != HistoricalPrice.Timeframe.DAY_1:
+        prices_qs = HistoricalPrice.objects.filter(asset=asset, timeframe=HistoricalPrice.Timeframe.DAY_1).order_by('-timestamp')[:limit]
+        if prices_qs.count() < 10:
+            sync_asset_historical_data(asset, HistoricalPrice.Timeframe.DAY_1)
+            prices_qs = HistoricalPrice.objects.filter(asset=asset, timeframe=HistoricalPrice.Timeframe.DAY_1).order_by('-timestamp')[:limit]
 
+    prices = list(reversed(prices_qs))
     chart_data = []
     seen_timestamps = set()
 
