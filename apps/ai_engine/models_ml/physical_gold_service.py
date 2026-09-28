@@ -25,6 +25,11 @@ CHENNAI_LIVE_22K_1G = 13765.00   # ₹13,765 per 1 Gram (8g Pavan: ₹1,10,120, 
 CHENNAI_LIVE_24K_1G = 15016.36   # ₹15,016.36 per 1 Gram (10g: ₹1,50,163.60, 8g: ₹1,20,130.88)
 CHENNAI_LIVE_18K_1G = 11262.27   # ₹11,262.27 per 1 Gram (750 Hallmark)
 
+# Official Yesterday Retail Gold Benchmark (Sep 27 Benchmark: ₹14,000 / 1g 22K)
+CHENNAI_YESTERDAY_22K_1G = 14000.00   # ₹14,000 per 1 Gram (8g Pavan: ₹1,12,000, 10g: ₹1,40,000)
+CHENNAI_YESTERDAY_24K_1G = 15272.73   # ₹15,272.73 per 1 Gram (10g: ₹1,52,727.30)
+CHENNAI_YESTERDAY_18K_1G = 11454.55   # ₹11,454.55 per 1 Gram (10g: ₹1,14,545.50)
+
 DEFAULT_FALLBACK_24K_USD_1G = 85.20     # ~$85.20 / 1g (~$2,650 / troy oz)
 
 
@@ -209,26 +214,33 @@ def get_physical_gold_rates_and_prediction(asset: Asset = None, horizon_days: in
     expected_change_pct = corridor['high_surge_pct']
     tp1_date = corridor['high_eta_date']
 
-    # 2. Dynamic Prior-Day Close (Yesterday's Rate)
-    # Check prior candle change on asset
-    prior_bars = (
-        HistoricalPrice.objects.filter(asset=asset, timeframe=HistoricalPrice.Timeframe.DAY_1)
-        .order_by('-timestamp')[:2]
-    )
-    if prior_bars.count() >= 2:
-        last_close = float(prior_bars[0].close)
-        prev_close = float(prior_bars[1].close)
-        yesterday_diff_pct = round(((last_close - prev_close) / (prev_close + 1e-9)) * 100.0, 2)
+    # 2. Prior-Day Close (Yesterday's Official Chennai Benchmark: ₹14,000 / 1g 22K)
+    if is_india:
+        yesterday_22k_1g = CHENNAI_YESTERDAY_22K_1G
+        yesterday_24k_1g = CHENNAI_YESTERDAY_24K_1G
+        yesterday_18k_1g = CHENNAI_YESTERDAY_18K_1G
+        yesterday_22k_8g = round(yesterday_22k_1g * 8.0, 2)
+        yesterday_22k_10g = round(yesterday_22k_1g * 10.0, 2)
+        yesterday_24k_10g = round(yesterday_24k_1g * 10.0, 2)
     else:
-        yesterday_diff_pct = -0.25
+        prior_bars = (
+            HistoricalPrice.objects.filter(asset=asset, timeframe=HistoricalPrice.Timeframe.DAY_1)
+            .order_by('-timestamp')[:2]
+        )
+        if prior_bars.count() >= 2:
+            last_close = float(prior_bars[0].close)
+            prev_close = float(prior_bars[1].close)
+            yesterday_diff_pct = round(((last_close - prev_close) / (prev_close + 1e-9)) * 100.0, 2)
+        else:
+            yesterday_diff_pct = -0.25
 
-    yesterday_factor = 1.0 / (1.0 + (yesterday_diff_pct / 100.0))
-    yesterday_24k_1g = round(current_24k_1g * yesterday_factor, 2)
-    yesterday_22k_1g = round(current_22k_1g * yesterday_factor, 2)
-    yesterday_18k_1g = round(current_18k_1g * yesterday_factor, 2)
-    yesterday_22k_8g = round(yesterday_22k_1g * 8.0, 2)
-    yesterday_22k_10g = round(yesterday_22k_1g * 10.0, 2)
-    yesterday_24k_10g = round(yesterday_24k_1g * 10.0, 2)
+        yesterday_factor = 1.0 / (1.0 + (yesterday_diff_pct / 100.0))
+        yesterday_24k_1g = round(current_24k_1g * yesterday_factor, 2)
+        yesterday_22k_1g = round(current_22k_1g * yesterday_factor, 2)
+        yesterday_18k_1g = round(current_18k_1g * yesterday_factor, 2)
+        yesterday_22k_8g = round(yesterday_22k_1g * 8.0, 2)
+        yesterday_22k_10g = round(yesterday_22k_1g * 10.0, 2)
+        yesterday_24k_10g = round(yesterday_24k_1g * 10.0, 2)
 
     today_vs_yesterday_diff_22k = round(current_22k_1g - yesterday_22k_1g, 2)
     today_vs_yesterday_pct = round(((current_22k_1g - yesterday_22k_1g) / (yesterday_22k_1g + 1e-9)) * 100.0, 2)
