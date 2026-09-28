@@ -70,88 +70,99 @@ class FullDataRefreshView(APIView):
         timeframe = request.data.get('timeframe', HistoricalPrice.Timeframe.DAY_1)
         horizon_days = int(request.data.get('horizon_days', 7))
 
-        asset = get_object_or_404(Asset, symbol__iexact=symbol)
-
-        # 1. Sync live price & OHLCV
         try:
-            sync_asset_historical_data(asset, timeframe=timeframe)
-            asset.refresh_from_db()
-        except Exception as e:
-            logger.warning(f"Error syncing {asset.symbol}: {e}")
+            asset = get_object_or_404(Asset, symbol__iexact=symbol)
 
-        # 2. Sync macro & news
-        try:
-            sync_macro_indicators()
-            fetch_live_market_news()
-        except Exception as e:
-            logger.warning(f"Error syncing macro/news: {e}")
+            # 1. Sync live price & OHLCV
+            try:
+                sync_asset_historical_data(asset, timeframe=timeframe)
+                asset.refresh_from_db()
+            except Exception as e:
+                logger.warning(f"Error syncing {asset.symbol}: {e}")
 
-        # 3. Generate AI Prediction
-        user = request.user if request.user.is_authenticated else None
-        prediction = generate_ai_prediction(
-            asset=asset,
-            timeframe=timeframe,
-            horizon_days=horizon_days,
-            user=user
-        )
+            # 2. Sync macro & news
+            try:
+                sync_macro_indicators()
+            except Exception as e:
+                logger.warning(f"Error syncing macro: {e}")
 
-        # 4. Physical Gold Rates (strictly 1g benchmark)
-        physical_gold = get_physical_gold_rates_and_prediction(asset, horizon_days=horizon_days)
+            try:
+                fetch_live_market_news()
+            except Exception as e:
+                logger.warning(f"Error syncing news: {e}")
 
-        # 5. Chart Candlestick Series
-        candles = get_candles_for_chart(asset, timeframe=timeframe, limit=300)
+            # 3. Generate AI Prediction
+            user = request.user if request.user.is_authenticated else None
+            prediction = generate_ai_prediction(
+                asset=asset,
+                timeframe=timeframe,
+                horizon_days=horizon_days,
+                user=user
+            )
 
-        # 6. Format today date and target date
-        now = timezone.now()
-        today_date_str = now.strftime("%b %d, %Y - %I:%M %p")
-        target_date_str = prediction.tp1_target_date.strftime("%b %d, %Y") if prediction.tp1_target_date else f"{horizon_days} Days"
+            # 4. Physical Gold Rates (strictly 1g benchmark)
+            physical_gold = get_physical_gold_rates_and_prediction(asset, horizon_days=horizon_days)
 
-        today_price = float(prediction.current_price_at_prediction or asset.last_price or 0.0)
-        target_price = float(prediction.take_profit_1 or prediction.expected_target_price or 0.0)
-        target_change_pct = round(((target_price - today_price) / (today_price + 1e-9)) * 100, 2)
+            # 5. Chart Candlestick Series
+            candles = get_candles_for_chart(asset, timeframe=timeframe, limit=300)
 
-        return Response({
-            'status': 'success',
-            'message': 'Latest live market data and AI prediction successfully updated!',
-            'symbol': asset.symbol,
-            'name': asset.name,
-            'currency': asset.currency,
-            'market': asset.market,
-            'timeframe': timeframe,
-            'horizon_days': horizon_days,
-            'horizon_label': prediction.horizon_label,
-            
-            # CLEAR TODAY PRICE & TARGET DETAILS
-            'today_price': round(today_price, 2),
-            'today_date': today_date_str,
-            'target_price': round(target_price, 2),
-            'target_date': target_date_str,
-            'target_change_pct': target_change_pct,
-            'signal': prediction.signal,
-            'signal_display': prediction.get_signal_display(),
-            'confidence': prediction.confidence_score,
-            
-            # Trade Setup
-            'suggested_entry': float(prediction.suggested_entry),
-            'stop_loss': float(prediction.stop_loss),
-            'take_profit_1': float(prediction.take_profit_1),
-            'take_profit_2': float(prediction.take_profit_2),
-            'risk_reward_ratio': float(prediction.risk_reward_ratio),
-            'upper_corridor_band': float(prediction.upper_corridor_band),
-            'lower_corridor_band': float(prediction.lower_corridor_band),
-            
-            # Multi-factor scores & analysis
-            'technical_score': float(prediction.technical_score),
-            'macro_score': float(prediction.macro_score),
-            'sentiment_score': float(prediction.sentiment_score),
-            'summary_analysis': prediction.summary_analysis,
-            
-            # Physical Gold 1g Rates & Predictions
-            'physical_gold': physical_gold,
-            
-            # Chart Candles
-            'candles': candles,
-        })
+            # 6. Format today date and target date
+            now = timezone.now()
+            today_date_str = now.strftime("%b %d, %Y - %I:%M %p")
+            target_date_str = prediction.tp1_target_date.strftime("%b %d, %Y") if prediction.tp1_target_date else f"{horizon_days} Days"
+
+            today_price = float(prediction.current_price_at_prediction or asset.last_price or 0.0)
+            target_price = float(prediction.take_profit_1 or prediction.expected_target_price or 0.0)
+            target_change_pct = round(((target_price - today_price) / (today_price + 1e-9)) * 100, 2)
+
+            return Response({
+                'status': 'success',
+                'message': 'Latest live market data and AI prediction successfully updated!',
+                'symbol': asset.symbol,
+                'name': asset.name,
+                'currency': asset.currency,
+                'market': asset.market,
+                'timeframe': timeframe,
+                'horizon_days': horizon_days,
+                'horizon_label': prediction.horizon_label,
+                
+                # CLEAR TODAY PRICE & TARGET DETAILS
+                'today_price': round(today_price, 2),
+                'today_date': today_date_str,
+                'target_price': round(target_price, 2),
+                'target_date': target_date_str,
+                'target_change_pct': target_change_pct,
+                'signal': prediction.signal,
+                'signal_display': prediction.get_signal_display(),
+                'confidence': prediction.confidence_score,
+                
+                # Trade Setup
+                'suggested_entry': float(prediction.suggested_entry),
+                'stop_loss': float(prediction.stop_loss),
+                'take_profit_1': float(prediction.take_profit_1),
+                'take_profit_2': float(prediction.take_profit_2),
+                'risk_reward_ratio': float(prediction.risk_reward_ratio),
+                'upper_corridor_band': float(prediction.upper_corridor_band),
+                'lower_corridor_band': float(prediction.lower_corridor_band),
+                
+                # Multi-factor scores & analysis
+                'technical_score': float(prediction.technical_score),
+                'macro_score': float(prediction.macro_score),
+                'sentiment_score': float(prediction.sentiment_score),
+                'summary_analysis': prediction.summary_analysis,
+                
+                # Physical Gold 1g Rates & Predictions
+                'physical_gold': physical_gold,
+                
+                # Chart Candles
+                'candles': candles,
+            })
+        except Exception as err:
+            logger.error(f"Full refresh failed for {symbol}: {str(err)}", exc_info=True)
+            return Response({
+                'status': 'error',
+                'message': f"Data sync note: {str(err)}. Serving cached market models."
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PredictionHistoryView(APIView):

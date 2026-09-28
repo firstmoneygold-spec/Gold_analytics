@@ -81,16 +81,17 @@ def analyze_sentiment(text: str) -> tuple[float, str, float]:
     return round(score, 2), label, confidence
 
 
-def fetch_live_market_news(limit_per_feed: int = 10):
+def fetch_live_market_news(limit_per_feed: int = 6):
     """
     Scrape, analyze sentiment, and store live financial news feeds for US & India.
+    Fast timeout (3s) to prevent UI blocking.
     """
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) TrendMasterAI/1.0'}
     created_news = []
 
     for feed_info in NEWS_FEEDS:
         try:
-            resp = requests.get(feed_info['url'], headers=headers, timeout=10)
+            resp = requests.get(feed_info['url'], headers=headers, timeout=3)
             if resp.status_code != 200:
                 continue
 

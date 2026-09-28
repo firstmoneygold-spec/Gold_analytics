@@ -33,6 +33,12 @@ def sync_asset_historical_data(asset: Asset, timeframe: str = HistoricalPrice.Ti
             logger.warning(f"No data returned for symbol {symbol}")
             return 0, None
 
+        # Clean and drop rows where price columns are NaN
+        df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
+        if df.empty:
+            logger.warning(f"Dataframe had only NaN values for symbol {symbol}")
+            return 0, None
+
         # Clean dataframe
         df.reset_index(inplace=True)
         date_col = 'Date' if 'Date' in df.columns else 'Datetime'
@@ -45,25 +51,39 @@ def sync_asset_historical_data(asset: Asset, timeframe: str = HistoricalPrice.Ti
 
         price_objects = []
         for _, row in df.iterrows():
-            ts = row['timestamp']
-            open_p = Decimal(str(round(row['Open'], 4)))
-            high_p = Decimal(str(round(row['High'], 4)))
-            low_p = Decimal(str(round(row['Low'], 4)))
-            close_p = Decimal(str(round(row['Close'], 4)))
-            vol = int(row['Volume']) if pd.notna(row['Volume']) else 0
+            if pd.isna(row['Open']) or pd.isna(row['High']) or pd.isna(row['Low']) or pd.isna(row['Close']):
+                continue
 
-            price_objects.append(
-                HistoricalPrice(
-                    asset=asset,
-                    timestamp=ts,
-                    timeframe=timeframe,
-                    open=open_p,
-                    high=high_p,
-                    low=low_p,
-                    close=close_p,
-                    volume=vol
+            try:
+                open_val = float(row['Open'])
+                high_val = float(row['High'])
+                low_val = float(row['Low'])
+                close_val = float(row['Close'])
+                vol = int(row['Volume']) if (pd.notna(row['Volume']) and not np.isnan(row['Volume'])) else 0
+
+                open_p = Decimal(str(round(open_val, 4)))
+                high_p = Decimal(str(round(high_val, 4)))
+                low_p = Decimal(str(round(low_val, 4)))
+                close_p = Decimal(str(round(close_val, 4)))
+
+                price_objects.append(
+                    HistoricalPrice(
+                        asset=asset,
+                        timestamp=row['timestamp'],
+                        timeframe=timeframe,
+                        open=open_p,
+                        high=high_p,
+                        low=low_p,
+                        close=close_p,
+                        volume=vol
+                    )
                 )
-            )
+            except Exception as row_err:
+                logger.debug(f"Skipping malformed row for {symbol}: {row_err}")
+                continue
+
+        if not price_objects:
+            return 0, df
 
         # Bulk create or update
         HistoricalPrice.objects.bulk_create(
@@ -77,8 +97,8 @@ def sync_asset_historical_data(asset: Asset, timeframe: str = HistoricalPrice.Ti
         if not df.empty:
             last_row = df.iloc[-1]
             prev_row = df.iloc[-2] if len(df) > 1 else last_row
-            latest_close = Decimal(str(round(last_row['Close'], 4)))
-            prev_close = Decimal(str(round(prev_row['Close'], 4)))
+            latest_close = Decimal(str(round(float(last_row['Close']), 4)))
+            prev_close = Decimal(str(round(float(prev_row['Close']), 4)))
 
             change_val = latest_close - prev_close
             change_pct = (change_val / prev_close * 100) if prev_close != 0 else Decimal('0.0')
