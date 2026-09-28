@@ -93,7 +93,7 @@ def calculate_30day_gold_corridor(asset: Asset, current_22k: float, current_24k:
     Synthesizes 10-Year historical volatility (GARCH/Parkinson), Macro Real Yield & DXY Elasticity,
     and Real-Time NLP Sentiment to construct statistical 68% and 95% Confidence Corridors.
     """
-    # 1. Historical Volatility from Price Series
+    # 1. 10-Year Historical Data Analysis with 5-Year Recency Weighting
     prices_qs = HistoricalPrice.objects.filter(asset=asset, timeframe=HistoricalPrice.Timeframe.DAY_1).order_by('timestamp')
     if prices_qs.count() < 20:
         prices_qs = HistoricalPrice.objects.filter(
@@ -103,9 +103,18 @@ def calculate_30day_gold_corridor(asset: Asset, current_22k: float, current_24k:
 
     if prices_qs.count() >= 15:
         closes = [float(p.close) for p in prices_qs]
-        returns = pd.Series(closes).pct_change().dropna()
-        daily_vol = float(returns.std()) if len(returns) > 5 else 0.009
-        vol_30d_pct = max(min(daily_vol * np.sqrt(22) * 100.0, 8.0), 2.5)
+        returns_all = pd.Series(closes).pct_change().dropna()
+        
+        # 10-Year Volatility Baseline
+        vol_10y = float(returns_all.std() * np.sqrt(22) * 100.0) if len(returns_all) > 10 else 4.20
+        
+        # 5-Year Preferred Recency Volatility (last ~1260 trading days)
+        returns_5y = returns_all.iloc[-1260:] if len(returns_all) > 1260 else returns_all
+        vol_5y = float(returns_5y.std() * np.sqrt(22) * 100.0) if len(returns_5y) > 10 else vol_10y
+        
+        # Quantitative Weighting: 80% weight on 5-Year market structure, 20% on 10-Year cycle
+        vol_30d_pct = (vol_5y * 0.80) + (vol_10y * 0.20)
+        vol_30d_pct = max(min(vol_30d_pct, 8.5), 2.5)
     else:
         vol_30d_pct = 4.20  # Long-term historical monthly gold volatility (4.2%)
 

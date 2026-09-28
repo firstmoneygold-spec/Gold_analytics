@@ -128,9 +128,22 @@ def calculate_technical_features(df: pd.DataFrame) -> pd.DataFrame:
     df['pivot_r1'] = (2.0 * df['pivot_p']) - prev_l
     df['pivot_s1'] = (2.0 * df['pivot_p']) - prev_h
     df['pivot_r2'] = df['pivot_p'] + (prev_h - prev_l)
-    df['pivot_s2'] = df['pivot_p'] - (prev_h - prev_l)
+    # 9. Multi-Year Structural Cycles (10-Year Macro Base + 5-Year Weighted Preference)
+    n_bars = len(df)
+    window_5y = min(n_bars, 1260)   # 5 Years ~ 1260 trading days
+    window_10y = min(n_bars, 2520)  # 10 Years ~ 2520 trading days
 
-    # 9. Confluence Agreement & Composite Quantitative Alpha
+    df['high_5y'] = high.rolling(window=window_5y, min_periods=1).max()
+    df['low_5y'] = low.rolling(window=window_5y, min_periods=1).min()
+    df['high_10y'] = high.rolling(window=window_10y, min_periods=1).max()
+    df['low_10y'] = low.rolling(window=window_10y, min_periods=1).min()
+
+    # Multi-Year Volatility Weighting (80% 5-Year Recency Preference + 20% 10-Year Structural Base)
+    vol_5y = df['volatility_annualized'].rolling(window=window_5y, min_periods=1).mean()
+    vol_10y = df['volatility_annualized'].rolling(window=window_10y, min_periods=1).mean()
+    df['volatility_weighted'] = (vol_5y * 0.80) + (vol_10y * 0.20)
+
+    # 10. Confluence Agreement & Composite Quantitative Alpha
     # Components:
     # - EMA Ribbon Alignment (30%)
     # - RSI Momentum (20%)

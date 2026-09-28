@@ -7,12 +7,12 @@ from apps.market_data.models import Asset, HistoricalPrice
 
 logger = logging.getLogger(__name__)
 
-# Map internal timeframe codes to yfinance intervals and periods
+# Map internal timeframe codes to yfinance intervals and periods (10-Year Historical Depth)
 TIMEFRAME_MAPPING = {
     HistoricalPrice.Timeframe.MIN_15:  {'period': '5d',  'interval': '15m'},
     HistoricalPrice.Timeframe.HOUR_1:  {'period': '1mo', 'interval': '1h'},
     HistoricalPrice.Timeframe.HOUR_4:  {'period': '3mo', 'interval': '1h'},
-    HistoricalPrice.Timeframe.DAY_1:   {'period': '5y',  'interval': '1d'},
+    HistoricalPrice.Timeframe.DAY_1:   {'period': '10y', 'interval': '1d'},
     HistoricalPrice.Timeframe.WEEK_1:  {'period': '10y', 'interval': '1wk'},
     HistoricalPrice.Timeframe.MONTH_1: {'period': '15y', 'interval': '1mo'},
 }

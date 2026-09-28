@@ -102,8 +102,10 @@ def generate_ai_prediction(
     tech_score = float(last_row['technical_score'])
     confluence_ratio = float(last_row.get('confluence_ratio', 60.0))
 
-    # Daily and Annualized Volatility
-    vol_annual = float(last_row['volatility_annualized']) if pd.notna(last_row['volatility_annualized']) and last_row['volatility_annualized'] > 0 else 18.0
+    # Daily and Annualized Volatility (Weighted with 5-Year Recency Preference & 10-Year Base)
+    vol_annual = float(last_row.get('volatility_weighted', last_row.get('volatility_annualized', 18.0)))
+    if not (vol_annual > 0):
+        vol_annual = float(last_row.get('volatility_annualized', 18.0)) if last_row.get('volatility_annualized', 0) > 0 else 18.0
     vol_daily = (vol_annual / 100.0) / np.sqrt(252)
     vol_horizon = vol_daily * np.sqrt(horizon_days)
 
@@ -194,10 +196,10 @@ def generate_ai_prediction(
     # 9. AI Summary Analysis Text
     rsi_val = float(last_row.get('rsi_14', 50.0))
     summary = (
-        f"Quantitative Multi-Factor Engine identifies a {signal.replace('_', ' ')} setup for {horizon_label} "
+        f"Quantitative Engine synthesizes 10-Year historical market cycles with 5-Year recency weighting to generate a {signal.replace('_', ' ')} setup for {horizon_label} "
         f"with {confidence_score}% statistical confidence. "
         f"Target 1: {asset.currency} {expected_target:.2f} (Est: {tp1_date.strftime('%b %d, %Y')}) with Stop-Loss at {asset.currency} {stop_loss:.2f} (R:R {rr_ratio}:1). "
-        f"Technical Confluence: {confluence_ratio:.0f}% (RSI: {rsi_val:.1f}, Annualized Vol: {vol_annual:.1f}%). "
+        f"Technical Confluence: {confluence_ratio:.0f}% (RSI: {rsi_val:.1f}, 5Y/10Y Blended Vol: {vol_annual:.1f}%). "
         f"Macro Transmission Score: {macro_score:+.2f} | News Polarity: {sentiment_score:+.2f}."
     )
 
